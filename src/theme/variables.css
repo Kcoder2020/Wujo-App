@@ -1,0 +1,41 @@
+/* src/theme/variables.css */
+
+:root {
+    --ion-color-dark-green: #014023;
+    --ion-color-dark-green-rgb: 1, 64, 35;
+    --ion-color-dark-green-contrast: #ffffff;
+    --ion-color-dark-green-contrast-rgb: 255, 255, 255;
+    --ion-color-dark-green-shade: #013820;
+    --ion-color-dark-green-tint: #1a523a;
+  
+    --ion-color-medium-aquamarine: #5FD9AC;
+    --ion-color-medium-aquamarine-rgb: 95, 217, 172;
+    --ion-color-medium-aquamarine-contrast: #000000;
+    --ion-color-medium-aquamarine-contrast-rgb: 0, 0, 0;
+    --ion-color-medium-aquamarine-shade: #54be97;
+    --ion-color-medium-aquamarine-tint: #6fe0b3;
+  
+    --ion-color-white-smoke: #F2F2F2;
+    --ion-color-white-smoke-rgb: 242, 242, 242;
+    --ion-color-white-smoke-contrast: #000000;
+    --ion-color-white-smoke-contrast-rgb: 0, 0, 0;
+    --ion-color-white-smoke-shade: #d5d5d5;
+    --ion-color-white-smoke-tint: #f3f3f3;
+  }
+  
+  /* Optional: Define the theme colors for different modes (light/dark) */
+  .ios body {
+    --ion-background-color: var(--ion-color-white-smoke);
+    --ion-background-color-rgb: 242, 242, 242;
+  
+    --ion-text-color: var(--ion-color-dark-green);
+    --ion-text-color-rgb: 1, 64, 35;
+  }
+  
+  .md body {
+    --ion-background-color: var(--ion-color-white-smoke);
+    --ion-background-color-rgb: 242, 242, 242;
+  
+    --ion-text-color: var(--ion-color-dark-green);
+    --ion-text-color-rgb: 1, 64, 35;
+  }
