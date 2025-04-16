@@ -38,6 +38,7 @@ Represents a single Rotating Savings and Credit Association group.
 | `members`            | Array[`Member`] | List of members in the Iqub (Fetched separately). | - | (From Member List API)   |
 | `hosted_lottery`     | String       | Progress indicator (e.g., "8/10")               | -                   | `hosted_lottery` (from `myIqubs`) |
 | `total_collected`    | String/Number| Total amount collected so far (Inferred).       | -                   | `total_collected` (from `myIqubs`) |
+| `next_lottery_date`  | String (ISO Date/DateTime) \| null | The scheduled date/time for the *next* lottery draw. Null if not set. | Future Date | `next_lottery_date` (New) |
 
 ## 3. Member (Iqub Participant)
 
@@ -101,3 +102,4 @@ Represents a user's membership within a specific Iqub.
 *   **Input Validation:** Implement client-side validation for forms (Signup, Create Iqub, Add Member) based on the `Frontend Validation` column. Use libraries like `VeeValidate` or built-in HTML5 validation enhanced with custom logic.
 *   **Data Mapping:** When processing API responses, map the received data keys (e.g., `user_id`) to the corresponding frontend model fields (e.g., `collector_id`).
 *   **Optional Fields:** Handle optional fields gracefully (e.g., `email`, `profile_picture_url`).
+*   **Update Iqub Interface:** Add the `next_lottery_date` field (string or null) to the `Iqub` TypeScript interface.

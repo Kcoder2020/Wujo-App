@@ -1,196 +1,124 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>
-          <img
-            src="../assets/img/wujo-logo.png"
-            alt="Wujo Logo"
-            class="logo-image"
-          />
-        </ion-title>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content>
       <swiper
-        :spaceBetween="30"
+        ref="swiperRef"
         :pagination="{ clickable: true }"
         :modules="modules"
-        class="mySwiper"
-        @swiper="onSwiper"
+        @slideChange="onSlideChange"
       >
         <swiper-slide>
-          <img
-            src="../assets/img/welcome_banner.png"
-            alt="Welcome to Wujo"
-            class="slide-image"
-          />
-          <h2>Welcome to Wujo</h2>
-          <p>
-            An alternate financing app along with a multi-service ecommerce
-            platform.
-          </p>
+          <img :src="welcomeBanner" alt="Welcome to Wujo!" />
+          <ion-text><h2>Welcome to Wujo</h2></ion-text>
+          <ion-text><p>Your financial goals, our shared journey.</p></ion-text>
         </swiper-slide>
         <swiper-slide>
-          <img
-            src="../assets/img/save_money_piggy.png"
-            alt="Save Money"
-            class="slide-image"
-          />
-          <h2>Save money</h2>
-          <p>
-            The first step is to create your Wujo account and upload your
-            documents to get registered on our database.
-          </p>
+          <img :src="saveMoneyPiggy" alt="Save Money Together" />
+          <ion-text><h2>Save Money Together</h2></ion-text>
+          <ion-text
+            ><p>Achieve your targets with collaborative savings.</p></ion-text
+          >
         </swiper-slide>
         <swiper-slide>
-          <img
-            src="../assets/img/rosca_products_credit_card.png"
-            alt="Access Diverse RoSCA Products"
-            class="slide-image"
-          />
-          <h2>Access Diverse RoSCA Products</h2>
-          <p>
-            Transform your savings into opportunities. Explore our comprehensive
-            suite of RoSCA solutions designed for seamless Trade and investment
-            through RoSCAs.
-          </p>
+          <img :src="roscaProductsCreditCard" alt="RoSCA Products" />
+          <ion-text><h2>RoSCA Products</h2></ion-text>
+          <ion-text
+            ><p>Explore innovative and rewarding financial tools.</p></ion-text
+          >
         </swiper-slide>
         <swiper-slide>
-          <img
-            src="../assets/img/discover_wujo_after_credit.png"
-            alt="Discover WUJO after getting your credit"
-            class="slide-image"
-          />
-          <h2>Discover WUJO after getting your credit</h2>
-          <p>
-            An alternate financing app along with a multi-service ecommerce
-            platform.
-          </p>
+          <img :src="discoverWujoAfterCredit" alt="Discover Wujo" />
+          <ion-text><h2>Discover Wujo</h2></ion-text>
+          <ion-text
+            ><p>Unlock a new way to manage and grow your finances.</p></ion-text
+          >
         </swiper-slide>
       </swiper>
 
-      <div class="navigation" v-if="!isLastSlide">
-        <ion-button fill="clear" @click="skipOnboarding">Skip</ion-button>
-        <ion-button @click="nextSlide">Next</ion-button>
+      <div class="buttons">
+        <ion-button v-if="!isLastSlide" fill="clear" @click="skip"
+          >Skip</ion-button
+        >
+        <ion-button v-if="!isLastSlide" @click="next">Next</ion-button>
+        <ion-button v-else @click="getStarted">Get Started</ion-button>
       </div>
-
-      <ion-button
-        v-if="isLastSlide"
-        expand="block"
-        @click="getStarted"
-        class="get-started-button"
-        >Get Started</ion-button
-      >
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonButton,
-  IonBackButton,
-  IonButtons,
-} from "@ionic/vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { ref, computed } from "vue"; // Import ref and computed
-import {
-  Pagination,
-  Navigation,
-  Scrollbar,
-  A11y,
-  Swiper as SwiperType,
-} from "swiper/modules";
-import { Swiper, SwiperSlide } from "swiper/vue";
+import { IonPage, IonContent, IonButton, IonText } from "@ionic/vue";
+import { Swiper } from "swiper/vue";
+import { Pagination } from "swiper/modules";
 import "swiper/css";
-import "swiper/css/navigation";
 import "swiper/css/pagination";
-import "swiper/css/scrollbar";
+
+import type { Swiper as SwiperType } from "swiper";
+import { SwiperSlide } from "swiper/vue";
+import { computed } from "vue";
+import welcomeBanner from "@/assets/img/welcome_banner.png";
+import saveMoneyPiggy from "@/assets/img/save_money_piggy.png";
+import roscaProductsCreditCard from "@/assets/img/rosca_products_credit_card.png";
+import discoverWujoAfterCredit from "@/assets/img/discover_wujo_after_credit.png";
 
 const router = useRouter();
-const modules = [Pagination, Navigation, Scrollbar, A11y];
-const swiperRef = ref<SwiperType | null>(null);
+const swiperRef = ref<SwiperType>();
+const isLastSlide = ref(false);
 
-const skipOnboarding = () => {
-  // Navigate to the sign-up page
-  router.push("/signup"); // Replace '/signup' with your actual route for the sign-up page
+const modules = [Pagination];
+
+const next = () => {
+  if (swiperRef.value && swiperRef.value.swiper) {
+    swiperRef.value.swiper.slideNext();
+  }
 };
 
-const nextSlide = () => {
-  // Programmatically advance to the next slide
-  swiperRef.value?.slideNext();
+const skip = () => {
+  router.push("/signup");
 };
 
 const getStarted = () => {
-  // Navigate to the home or main app page
-  router.push("/home"); // Replace '/home' with your actual route
+  router.push("/signup");
 };
 
-const onSwiper = (swiper: SwiperType) => {
-  swiperRef.value = swiper;
+const onSlideChange = (swiper: any) => {
+  isLastSlide.value = swiper.activeIndex === 3; // Assuming 4 slides
 };
-
-const isLastSlide = computed(() => {
-  if (swiperRef.value) {
-    return swiperRef.value.isEnd;
-  }
-  return false;
-});
 </script>
 
 <style scoped>
-ion-slide {
+ion-content {
+  --background: var(--ion-color-light);
+}
+
+swiper-slide {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-align: center;
   padding: 20px;
+  text-align: center;
+  font-size: 1.2em;
 }
 
-.slide-image {
+img {
   max-width: 80%;
+  height: auto;
   margin-bottom: 20px;
 }
 
-h2 {
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-
-p {
-  font-size: 16px;
-  color: #666;
-}
-
-.navigation {
+.buttons {
   position: absolute;
   bottom: 20px;
-  left: 0;
-  right: 0;
+  left: 20px;
+  right: 20px;
   display: flex;
   justify-content: space-between;
-  padding: 0 20px;
 }
 
-.logo-image {
-  max-height: 40px;
-  /* Adjust the height as needed */
-}
-
-/* Style for the "Get Started" button on the last slide */
-.get-started-button {
-  position: absolute;
-  bottom: 15%;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  width: 80%;
-  /* Adjust width as needed */
+.buttons ion-button {
+  width: auto;
 }
 </style>

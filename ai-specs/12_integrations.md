@@ -44,6 +44,18 @@ This document lists external services and libraries integrated into the Wujo fro
 ## 6. Potential Future Integrations (Optional)
 
 *   **Push Notifications:** Firebase Cloud Messaging (FCM) via Capacitor Push Notifications plugin (`@capacitor/push-notifications`). Requires backend integration to send notifications.
+*   **Service:** Firebase Cloud Messaging (FCM) for Android, Apple Push Notification Service (APNS) for iOS. (Backend responsibility to send notifications via these services).
+*   **Integration Point (Frontend):** Capacitor Push Notifications plugin (`@capacitor/push-notifications`).
+*   **Purpose:** Notify users (Collectors, Members) about key events, starting with lottery results.
+*   **Details:**
+    *   Frontend needs to request permission from the user to receive notifications.
+    *   Frontend needs to register with FCM/APNS to receive a device token.
+    *   Frontend *may* need to send this device token to the backend to associate it with the user (Requires a dedicated backend endpoint: `POST /api/device-token` - *Assumption, needs confirmation*).
+    *   Frontend needs listeners to handle:
+        *   Receiving the device token.
+        *   Receiving notifications when the app is in the foreground.
+        *   Handling notification tap actions when the app is opened from a notification.
+*   **Agent Instruction:** Implement push notification setup using `@capacitor/push-notifications`. Request permissions, handle token registration (including sending to backend if required), and set up listeners for incoming notifications as described in `07_user_journeys.md` and `10_agent_tasks.md`.
 *   **Analytics:** Google Analytics / Firebase Analytics via Capacitor plugins or web SDKs.
 *   **Payment Gateway:** If direct payments are implemented (not indicated in current API), integration with a payment provider (e.g., Stripe, local Ethiopian gateways) would be needed via SDKs or backend coordination.
 *   **Mapping/Location:** If location features are added, Capacitor Geolocation plugin (`@capacitor/geolocation`) and map libraries (e.g., Leaflet, Mapbox GL JS) might be integrated.

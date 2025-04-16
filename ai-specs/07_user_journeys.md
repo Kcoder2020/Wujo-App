@@ -106,10 +106,101 @@ This document outlines key user interaction flows within the Wujo application.
     *   Displays an error message (e.g., "User not found", "Member already added", "Iqub is full").
     *   Hides loading indicator.
 
-## 7. Agent Instructions
+## 7. Initiate Lottery Journey (Collector)
 
+1.  **User Action:** Collector navigates to the `IqubDetailPage.vue` for an active Iqub they manage.
+2.  **System Response:** Displays Iqub details (members, status, current round info, etc.). If preconditions are met (Iqub status allows lottery, current round needs a winner - see `05_business_logic.md`), an "Initiate Lottery" button is visible and enabled.
+3.  **User Action:** Taps the "Initiate Lottery" button.
+4.  **System Response:** (Optional) Shows a confirmation modal ("Are you sure you want to start the lottery for this round?").
+5.  **User Action:** Confirms the action.
+6.  **System Response:**
+    *   Dispatches `iqubs/initiateLottery` Vuex action, passing the `iqubId` and the Collector's user ID (`agent_id`).
+    *   Shows a loading indicator.
+7.  **System Response (on API Success):**
+    *   Hides loading indicator.
+    *   Shows a success message (e.g., "Lottery started! Winner will be notified via push notification.").
+    *   (Optional) Updates the UI on the `IqubDetailPage.vue` to reflect that the lottery is in progress or completed for the round (e.g., disable the "Initiate Lottery" button, show a status update). The primary notification of the *winner* comes via push notification.
+8.  **System Response (on API Failure):**
+    *   Hides loading indicator.
+    *   Displays an informative error message (e.g., "Lottery could not be started: Round already complete.").
+
+## 8. Receiving Lottery Result Journey (Member/Collector via Push Notification)
+
+1.  **System Action:** Backend successfully processes the lottery and sends push notifications via FCM/APNS.
+2.  **System Response (App in Background/Closed):** User's device displays a standard push notification (e.g., "Congratulations! You won the lottery for Iqub '[Iqub Name]'!" or "Lottery results for Iqub '[Iqub Name]' are in.").
+3.  **User Action:** Taps the notification.
+4.  **System Response:** Opens the Wujo app, potentially navigating to the relevant `IqubDetailPage.vue` or a dedicated notifications screen.
+5.  **System Response (App in Foreground):**
+    *   The app's push notification listener receives the notification payload.
+    *   Displays an in-app notification (e.g., `IonToast` or a custom banner) with the lottery result information.
+    *   (Optional) Updates relevant state in Vuex (e.g., marking a notification as read, potentially updating Iqub status if payload contains sufficient info, though relying on fetching fresh data upon navigation is often safer).
+
+
+## 9. View Lottery Winner Journey (Collector/Member)
+
+1.  **Prerequisite:** A lottery has been successfully initiated and completed for a specific Iqub round. A user (Collector or Member of that Iqub) navigates to the `IqubDetailPage.vue`.
+2.  **System Response:**
+    *   Component mounts and dispatches `iqubs/fetchIqubDetails` (which includes fetching members).
+    *   Component also dispatches `iqubs/fetchLotteryWinner`, passing the `iqubId`.
+    *   Displays loading indicators for details and potentially a separate one for the winner info.
+3.  **System Response (on API Success for `/fetchlottery`):**
+    *   `iqubs/fetchLotteryWinner` action completes, updating `iqubs/currentIqubLotteryWinner` state.
+    *   Hides the winner loading indicator.
+    *   If a winner exists (`getCurrentIqubWinner` is not null), displays the winner's information (e.g., Name: "John Doe") in a designated section on the `IqubDetailPage.vue`. Example locations:
+        *   A dedicated "Lottery Winner" card/section.
+        *   Near the round progress indicator.
+    *   If no winner exists (`getCurrentIqubWinner` is null), displays a message like "Lottery for this round has not been drawn yet." or "No winner for this round.".
+4.  **System Response (on API Failure for `/fetchlottery`):**
+    *   Displays an error message related to fetching the winner (e.g., "Could not load lottery winner.").
+
+*(Note: Real-time updates via Push Notifications, as described in Journey 9, are the primary way users are *alerted* to the result. This journey describes how the result is *displayed* when viewing the Iqub details page.)*
+
+## 10. View Lottery Winner Journey (Collector/Member)
+
+1.  **Prerequisite:** A lottery has been successfully initiated and completed for a specific Iqub round. A user (Collector or Member of that Iqub) navigates to the `IqubDetailPage.vue`.
+2.  **System Response:**
+    *   Component mounts and dispatches `iqubs/fetchIqubDetails` (which includes fetching members).
+    *   Component also dispatches `iqubs/fetchLotteryWinner`, passing the `iqubId`.
+    *   Displays loading indicators for details and potentially a separate one for the winner info.
+3.  **System Response (on API Success for `/fetchlottery`):**
+    *   `iqubs/fetchLotteryWinner` action completes, updating `iqubs/currentIqubLotteryWinner` state.
+    *   Hides the winner loading indicator.
+    *   If a winner exists (`getCurrentIqubWinner` is not null), displays the winner's information (e.g., Name: "John Doe") in a designated section on the `IqubDetailPage.vue`. Example locations:
+        *   A dedicated "Lottery Winner" card/section.
+        *   Near the round progress indicator.
+    *   If no winner exists (`getCurrentIqubWinner` is null), displays a message like "Lottery for this round has not been drawn yet." or "No winner for this round.".
+4.  **System Response (on API Failure for `/fetchlottery`):**
+    *   Displays an error message related to fetching the winner (e.g., "Could not load lottery winner.").
+
+*(Note: Real-time updates via Push Notifications, as described in Journey 9, are the primary way users are *alerted* to the result. This journey describes how the result is *displayed* when viewing the Iqub details page.)*
+
+## 11. Set Next Lottery Date Journey (Collector)
+
+1.  **User Action:** Collector navigates to the `IqubDetailPage.vue` for an active Iqub they manage.
+2.  **System Response:** Displays Iqub details. Shows the currently scheduled `next_lottery_date` if set (fetched via `fetchIqubDetails`), otherwise displays "Not Set" or similar. An "Edit Date" or "Set Date" button/icon is visible next to the date display.
+3.  **User Action:** Taps the "Edit Date" / "Set Date" button.
+4.  **System Response:** Opens a modal or inline date picker (`IonDatetime`), potentially pre-filled with the current `next_lottery_date`. Configure the picker to only allow selection of future dates.
+5.  **User Action:** Selects a new date using the date picker and confirms.
+6.  **System Response:**
+    *   Dispatches `iqubs/setNextLotteryDate` Vuex action, passing the `iqubId` and the selected date (formatted as ISO string).
+    *   Shows a loading indicator.
+7.  **System Response (on API Success):**
+    *   Hides loading indicator.
+    *   Shows a success message (e.g., `IonToast`: "Next lottery date updated.").
+    *   Closes the modal/picker.
+    *   The `next_lottery_date` displayed on the page updates reactively based on the change in the Vuex store.
+8.  **System Response (on API Failure):**
+    *   Hides loading indicator.
+    *   Displays an informative error message (e.g., "Invalid date selected", "Failed to update date.").
+
+## Agent Instructions
 *   **Implement Views:** Create Vue components for each major screen/page described in these journeys (e.g., `OnboardingPage.vue`, `LoginPage.vue`, `SignupPage.vue`, `CollectorDashboard.vue`, `MyIqubsPage.vue`, `CreateIqubPage.vue`, `MemberDashboard.vue`, `JoinedIqubsPage.vue`).
 *   **Implement Routing:** Configure Vue Router to handle navigation between these views, including passing parameters (e.g., Iqub ID).
 *   **Connect to State:** Components should interact with the Vuex store to fetch data (using getters or dispatching fetch actions) and trigger updates (dispatching actions like login, signup, createIqub).
 *   **Implement Forms:** Build the required forms with appropriate input fields and validation logic.
 *   **Handle Loading/Error States:** Display loading indicators during API calls and provide clear user feedback for success and error scenarios.
+*   **Implement Lottery Journey:** Build the UI elements and logic for the "Initiate Lottery" journey as described, including conditional rendering of the trigger button and handling API responses.
+*   **Implement Notification Handling:** Integrate push notification receiving logic to handle lottery results (and potentially other future notifications) when the app is in the foreground or opened via a notification tap.
+*   **Implement Winner Display:** On `IqubDetailPage.vue`, fetch the lottery winner data using the `iqubs/fetchLotteryWinner` action. Display the winner's name (or a "no winner" message) based on the `iqubs/getCurrentIqubWinner` getter. Handle loading and error states specifically for fetching the winner.
+*   **Implement Winner Display:** On `IqubDetailPage.vue`, fetch the lottery winner data using the `iqubs/fetchLotteryWinner` action. Display the winner's name (or a "no winner" message) based on the `iqubs/getCurrentIqubWinner` getter. Handle loading and error states specifically for fetching the winner.
+*   **Implement Set Date Journey:** Build the UI elements (`IonDatetime` within a modal or popover triggered by a button) and logic for the "Set Next Lottery Date" journey on `IqubDetailPage.vue`. Ensure date constraints (future dates) are applied to the picker. Connect to the Vuex action and handle API responses/state updates.
