@@ -1,5 +1,6 @@
 import { createStore } from "vuex";
 import auth from "./modules/auth"; // Corrected to default import
+import iqubs from "./modules/iqubs";
 
 export default createStore({
   state: {},
@@ -8,5 +9,6 @@ export default createStore({
   actions: {},
   modules: {
     auth, // Use the default import
+    iqubs,
   },
 });

@@ -1,40 +1,29 @@
+// src/router/index.ts
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { useStore } from "vuex";
-import { Commit } from "vuex"; // Added import for Commit
+// Commit import not needed here
+// import { Commit } from "vuex";
+
+// Import necessary page components
 import LoginPage from "../views/LoginPage.vue";
 import SignupPage from "../views/SignupPage.vue";
-import CollectorDashboard from "../views/CollectorDashboard.vue";
-import MemberDashboard from "../views/MemberDashboard.vue";
-import MyIqubsPage from "../views/MyIqubsPage.vue";
-import CreateIqubPage from "../views/CreateIqubPage.vue";
+
+// Import the components that will be rendered by the root router outlet
+import CollectorDashboard from "../views/CollectorDashboard.vue"; // Now a full page
+import MemberDashboard from "../views/MemberDashboard.vue"; // Now a full page
+import MyIqubsPage from "../views/MyIqubsPage.vue"; // Now a full page
+import CreateIqubPage from "../views/CreateIqubPage.vue"; // Now a full page
+import ProfilePage from "../views/CollectorProfile.vue"; // Assuming this is a full page
+import IqubBookPage from "../views/IqubBookPage.vue"; // Assuming this is a full page
+import PaymentVerificationPage from "../views/PaymentVerificationPage.vue";
+// Import standalone pages
 import IqubDetailPage from "../views/IqubDetailPage.vue";
-import JoinedIqubsPage from "../views/JoinedIqubsPage.vue";
 import AboutView from "../views/AboutView.vue";
 import HomeView from "../views/HomeView.vue";
-import OnboardingPage from "../components/OnboardingPage.vue"; // Corrected path
+import OnboardingPage from "../components/OnboardingPage.vue";
+import JoinedIqubsPage from "../views/JoinedIqubsPage.vue";
+
 import { User } from "@/types"; // Assuming User type is defined here
-
-// --- Development Mode Sample Users ---
-const sampleCollectorUser: User = {
-  id: "dev-collector-001",
-  name: "Dev Collector",
-  email: "collector@dev.local",
-  role: "collector",
-  phone: "000-000-0000", // Added dummy phone
-  gender: "other", // Added dummy gender
-  // Add other necessary user fields with dummy data
-};
-
-const sampleMemberUser: User = {
-  id: "dev-member-001",
-  name: "Dev Member",
-  email: "member@dev.local",
-  role: "member",
-  phone: "000-000-0000", // Added dummy phone
-  gender: "other", // Added dummy gender
-  // Add other necessary user fields with dummy data
-};
-// --- End Development Mode Sample Users ---
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -42,70 +31,112 @@ const routes: Array<RouteRecordRaw> = [
     redirect: "/onboarding", // Redirect root to onboarding
   },
   {
-    path: "/home", // Keep /home if needed, maybe redirect based on login status later
+    path: "/home",
     name: "Home",
     component: HomeView,
+    meta: { requiresAuth: false }, // Assuming home doesn't require auth
   },
   {
     path: "/onboarding",
     name: "onboarding",
     component: OnboardingPage,
+    meta: { requiresAuth: false },
   },
   {
     path: "/login",
     name: "login",
     component: LoginPage,
+    meta: { requiresAuth: false },
   },
   {
     path: "/signup",
     name: "signup",
     component: SignupPage,
+    meta: { requiresAuth: false },
   },
+  // --- Collector Pages (rendered by root router outlet) ---
+  // These routes match the paths pushed by your CollectorTabBar buttons
   {
-    path: "/collector-dashboard",
-    name: "collector-dashboard",
-    component: CollectorDashboard,
+    path: "/collector/dashboard", // <--- Matches goTo('/collector/dashboard')
+    name: "collector-dashboard", // Use a unique name
+    component: CollectorDashboard, // This component is rendered fully
     meta: { requiresAuth: true, roles: ["collector"] },
   },
   {
-    path: "/member-dashboard",
+    path: "/collector/my-iqubs", // <--- Matches goTo('/collector/my-iqubs')
+    name: "my-iqubs", // Use a unique name
+    component: MyIqubsPage, // This component is rendered fully
+    meta: { requiresAuth: true, roles: ["collector"] },
+  },
+  {
+    path: "/collector/create-iqub", // <--- Matches goTo('/collector/create-iqub')
+    name: "create-iqub", // Use a unique name
+    component: CreateIqubPage, // This component is rendered fully
+    meta: { requiresAuth: true, roles: ["collector"] },
+  },
+  {
+    path: "/collector/profile", // <--- Matches goTo('/collector/profile')
+    name: "collector-profile", // Use a unique name
+    component: ProfilePage, // This component is rendered fully
+    meta: { requiresAuth: true, roles: ["collector"] },
+  },
+  {
+    path: "/collector/iqub-book", // <--- Matches goTo('/collector/iqub-book')
+    name: "collector-iqub-book", // Use a unique name
+    component: IqubBookPage, // This component is rendered fully
+    meta: { requiresAuth: true, roles: ["collector"] },
+  },
+  {
+    path: "/collector/payment-verify/:id", // <--- Matches goTo('/collector/iqub-book')
+    name: "collector-payment-verify", // Use a unique name
+    component: PaymentVerificationPage, // This component is rendered fully
+    meta: { requiresAuth: true, roles: ["collector"] },
+  },
+  // --- Member Pages (rendered by root router outlet) ---
+  // You'll need similar routes for member tabs if you have a member tab bar
+  {
+    path: "/member/dashboard",
     name: "member-dashboard",
     component: MemberDashboard,
     meta: { requiresAuth: true, roles: ["member"] },
   },
   {
-    path: "/my-iqubs",
-    name: "my-iqubs",
-    component: MyIqubsPage,
-    meta: { requiresAuth: true, roles: ["collector"] },
-  },
-  {
-    path: "/create-iqub",
-    name: "create-iqub",
-    component: CreateIqubPage,
-    meta: { requiresAuth: true, roles: ["collector"] },
+    path: "/member/joined-iqubs",
+    name: "joined-iqubs", // Use a unique name
+    component: JoinedIqubsPage,
+    meta: { requiresAuth: true, roles: ["member"] },
   },
   {
     path: "/iqub/:id",
     name: "iqub-detail",
     component: IqubDetailPage,
-    meta: { requiresAuth: true, roles: ["collector", "member"] }, // Assuming both can view details
+    meta: { requiresAuth: true, roles: ["collector"] },
     props: true,
   },
   {
-    path: "/joined-iqubs",
-    name: "joined-iqubs",
-    component: JoinedIqubsPage,
+    path: "/member/profile", // Example member profile route
+    name: "member-profile", // Use a unique name
+    component: ProfilePage, // Assuming you might reuse the profile component
     meta: { requiresAuth: true, roles: ["member"] },
+  },
+  // --- Standalone Routes (rendered by the root <ion-router-outlet>) ---
+  {
+    path: "/iqub/:id",
+    name: "iqub-detail",
+    component: IqubDetailPage,
+    meta: { requiresAuth: true, roles: ["collector", "member"] },
+    props: true,
   },
   {
     path: "/about",
     name: "about",
     component: AboutView,
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    // component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+    meta: { requiresAuth: false }, // Assuming about doesn't require auth
+  },
+  // Catch-all for any other unmatched routes
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/", // Redirects unknown paths to the root
   },
 ];
 
@@ -114,77 +145,75 @@ const router = createRouter({
   routes,
 });
 
+// Authentication and Authorization Guard
 router.beforeEach((to, from, next) => {
   const store = useStore();
   const isLoggedIn = store.getters["auth/isLoggedIn"];
-  let user = store.getters["auth/getUser"] as User | null; // Allow null initially
+  const user = store.getters["auth/getUser"] as User | null;
 
-  // --- Development Mode Bypass ---
-  if (
-    process.env.NODE_ENV === "development" && // Check for development environment
-    to.meta.requiresAuth && // Check if route requires authentication
-    !isLoggedIn && // Check if user is not logged in
-    (to.query.role === "collector" || to.query.role === "member") // Check for role query parameter
-  ) {
-    const role = to.query.role;
-    const sampleUser =
-      role === "collector" ? sampleCollectorUser : sampleMemberUser;
+  console.log(`Navigating FROM: ${from.fullPath} TO: ${to.fullPath}`);
+  console.log(`Guard Check: isLoggedIn = ${isLoggedIn}`);
+  console.log(`Guard Check: user = ${JSON.stringify(user)}`);
+  console.log(`Guard Check: Target meta = ${JSON.stringify(to.meta)}`);
 
-    console.warn(`DEV MODE: Simulating login for role: ${role}`); // Log warning
+  const requiresAuth = to.meta.requiresAuth;
+  const requiredRoles = Array.isArray(to.meta.roles) ? to.meta.roles : null;
 
-    // Simulate login by committing to Vuex store
-    store.commit("auth/SET_USER", sampleUser);
-    store.commit("auth/SET_TOKEN", `dev_mock_token_${role}`); // Use a mock token
-    store.commit("auth/SET_STATUS", "succeeded");
-
-    // Re-fetch user after simulated login for role checks below if needed
-    // NOTE: Since we call next() immediately, subsequent checks in *this* guard execution
-    // for the simulated user aren't strictly necessary here. The *next* navigation
-    // will see the user as logged in.
-    user = store.getters["auth/getUser"] as User; // Update user variable
-
-    next(); // Allow navigation
-    return; // Stop further execution of this guard instance
-  }
-  // --- End Development Mode Bypass ---
-
-  // --- Standard Authentication & Authorization Logic ---
-  if (to.meta.requiresAuth) {
+  if (requiresAuth) {
     if (!isLoggedIn) {
-      // User not logged in, redirect to login page
+      console.log("Requires auth, but not logged in. Redirecting to login.");
       next("/login");
     } else if (user) {
-      // Check if user object exists
-      // User is logged in, check roles
-      if (Array.isArray(to.meta.roles) && 
-          to.meta.roles.includes(user.role)) {
-        // User has the required role, allow navigation
-        next();
-      } else {
-        // User doesn't have the required role, redirect to their dashboard
+      if (requiredRoles && !requiredRoles.includes(user.role)) {
         console.warn(
-          `Redirecting: User role "${user.role}" does not match required roles "${to.meta.roles}" for route ${to.path}`
+          `Redirecting: User role "${user.role}" does not match required roles "${requiredRoles}" for route ${to.fullPath}`
         );
+        // Redirect to the appropriate dashboard based on role
         if (user.role === "collector") {
-          next("/collector-dashboard");
+          next("/collector/dashboard"); // Redirect to collector dashboard page
         } else if (user.role === "member") {
-          next("/member-dashboard");
+          next("/member/dashboard"); // Redirect to member dashboard page
         } else {
-          // Fallback if user role is unknown or no specific dashboard
-          next("/about"); // Or redirect to a generic logged-in page
+          // Fallback for unknown roles
+          next("/home");
         }
+      } else {
+        // User is logged in and has the required role (or no specific roles required)
+        console.log(
+          "Authentication and authorization successful. Allowing navigation."
+        );
+        next();
       }
     } else {
-      // Should not happen if isLoggedIn is true, but as a safeguard:
       console.error(
-        "User is logged in but user object is null. Redirecting to login."
+        "Inconsistent state: Logged in but user object is null. Logging out."
       );
-      store.dispatch("auth/logout"); // Log out inconsistent state
+      store.dispatch("auth/logout");
       next("/login");
     }
   } else {
-    // Route doesn't require auth, allow navigation
-    next();
+    // Route does not require auth
+    console.log("Route does not require auth. Allowing navigation.");
+    // Optional: Prevent logged-in users from accessing auth/onboarding pages directly
+    if (
+      isLoggedIn &&
+      (to.path === "/login" ||
+        to.path === "/signup" ||
+        to.path === "/onboarding")
+    ) {
+      console.log(
+        "Logged in user attempting to access auth/onboarding page. Redirecting to dashboard."
+      );
+      if (user?.role === "collector") {
+        next("/collector/dashboard");
+      } else if (user?.role === "member") {
+        next("/member/dashboard");
+      } else {
+        next("/home"); // Fallback
+      }
+    } else {
+      next(); // Allow navigation
+    }
   }
 });
 
