@@ -263,6 +263,8 @@ import {
   IonHeader, // Keep IonHeader for modal
   IonToolbar, // Keep IonToolbar for modal
   IonTitle, // Keep IonTitle for modal
+  menuController, // Import menuController
+  useIonRouter,
 } from "@ionic/vue";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
@@ -284,6 +286,7 @@ import CollectorTabBar from "@/components/CollectorTabBar.vue";
 const store = useStore();
 const route = useRoute();
 const router = useRouter();
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
 // --- State & Getters from Vuex ---
 const iqubId = computed(() => Number(route.params.id));
@@ -379,9 +382,11 @@ const retryFetch = () => {
 // --- Event Handlers for Top Bar (Reused) ---
 const openMenu = () => {
   console.log("Open menu clicked"); /* Implement menu logic */
+  menuController.open("app-menu");
 };
 const goToNotifications = () => {
-  console.log("Notifications icon clicked"); /* Navigate */
+  // router.push("/notifications"); // Navigate to notifications page
+  ionRouter.push("/notifications", "forward", "none");
 };
 
 // --- Modal Logic ---
@@ -569,7 +574,8 @@ const copyIqubLink = async () => {
 const goToMemberDetails = (memberId: string | number) => {
   console.log("Go to Member Details collector/iqub-book/1:", memberId);
   // router.push(`/collector/members/${memberId}`); // Example route
-  router.push(`/collector/iqub-book`);
+  // router.push(`/collector/iqub-book`);
+  ionRouter.push(`/collector/iqub-book`, "forward", "none");
 };
 </script>
 

@@ -114,6 +114,8 @@ import {
   IonIcon,
   IonBadge,
   IonButton, // Import IonButton for the copy link and retry
+  menuController, // Import menuController
+  useIonRouter,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router"; // Import useRoute
@@ -135,6 +137,7 @@ import CollectorTabBar from "@/components/CollectorTabBar.vue";
 const store = useStore();
 const router = useRouter();
 const route = useRoute(); // Get the current route
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
 // Get the Iqub ID from the route parameter
 const iqubId = computed(() => Number(route.params.id)); // Assuming route path is /iqub-book/:id
@@ -235,9 +238,11 @@ onMounted(() => {
 // --- Event Handlers for Top Bar (Reused) ---
 const openMenu = () => {
   console.log("Open menu clicked"); /* Implement menu logic */
+  menuController.open("app-menu");
 };
 const goToNotifications = () => {
-  console.log("Notifications icon clicked"); /* Navigate */
+  // router.push("/notifications"); // Navigate to notifications page
+  ionRouter.push("/notifications", "forward", "none");
 };
 
 // --- Action Button Handlers ---
@@ -287,7 +292,8 @@ const goToPaymentVerification = (roundNumber: number) => {
   // Example route: /iqub-book/:iqubId/round/:roundNumber/verify
   // router.push(`/collector/iqub/${iqubId.value}/round/${roundNumber}/verify`);
   let roundNum = 1;
-  router.push(`/collector/payment-verify/${roundNum}`);
+  // router.push(`/collector/payment-verify/${roundNum}`);
+  ionRouter.push(`/collector/payment-verify/${roundNum}`, "forward", "none");
 };
 </script>
 

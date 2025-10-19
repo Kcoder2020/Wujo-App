@@ -44,7 +44,10 @@
           <div class="profile-image-container">
             <!-- Use ion-avatar or img for the profile picture -->
             <img
-              :src="collectorProfileData.avatar_url || defaultProfileImage"
+              :src="
+                collectorProfileData.avatar_url ||
+                'https://picsum.photos/200/300'
+              "
               alt="Profile Picture"
               class="profile-image"
             />
@@ -75,28 +78,28 @@
           <div class="stats-row">
             <div class="stat-item">
               <ion-text class="stat-value">{{
-                collectorProfileData.joined_iqubs[0].total_collected || "0"
+                collectorProfileData?.joined_iqubs[0]?.total_collected || "0"
               }}</ion-text>
               <ion-text class="stat-label">Total Collected</ion-text>
             </div>
             <div class="stat-item">
               <!-- Assuming 'iqub_joined_count' or similar exists -->
               <ion-text class="stat-value">{{
-                collectorProfileData.joined_iqubs[0].members_count || "0"
+                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
               }}</ion-text>
               <ion-text class="stat-label">Iqub Joined members</ion-text>
             </div>
             <div class="stat-item">
               <!-- Assuming 'lottery_won_count' or similar exists -->
               <ion-text class="stat-value">{{
-                collectorProfileData.joined_iqubs[0].members_count || "0"
+                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
               }}</ion-text>
               <ion-text class="stat-label">Lottey Won</ion-text>
             </div>
             <div class="stat-item">
               <!-- Assuming 'finished_iqub_count' or similar exists -->
               <ion-text class="stat-value">{{
-                collectorProfileData.joined_iqubs[0].members_count || "0"
+                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
               }}</ion-text>
               <ion-text class="stat-label">Finished Iqub</ion-text>
             </div>
@@ -129,6 +132,8 @@ import {
   IonButton,
   IonSpinner, // For loading indicator
   // IonAvatar, // If using ion-avatar for image
+  menuController, // Import menuController
+  useIonRouter,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
@@ -145,6 +150,7 @@ import defaultProfileImage from "@/assets/img/profile.jpeg"; // Assuming you hav
 
 const store = useStore();
 const router = useRouter();
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
 // --- Profile Data (Assuming it's in the Auth store) ---
 // You should verify where your user/profile data is stored after login.
@@ -178,9 +184,11 @@ const collectorProfileData = computed(() => store.getters["auth/getUser"]); // E
 // --- Event Handlers for Top Bar (Reused) ---
 const openMenu = () => {
   console.log("Open menu clicked"); /* Implement menu logic */
+  menuController.open("app-menu");
 };
 const goToNotifications = () => {
-  console.log("Notifications icon clicked"); /* Navigate */
+  // router.push("/notifications"); // Navigate to notifications page
+  ionRouter.push("/notifications", "forward", "none");
 };
 
 // --- Profile Actions ---
@@ -193,7 +201,8 @@ const logoutProfile = () => {
   console.log("Edit Profile button clicked");
   // Implement navigation to an Edit Profile page or open a modal
   store.dispatch("auth/logout");
-  router.push("/login"); // Example navigation
+  // router.push("/login"); // Example navigation
+  ionRouter.push("/login", "forward", "none");
 };
 </script>
 

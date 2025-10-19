@@ -72,7 +72,7 @@
             v-for="iqub in myIqubs"
             :key="iqub.id"
             class="list-item"
-            @click="() => router.push(`/iqub/${iqub.id}`)"
+            @click="() => ionRouter.push(`/iqub/${iqub.id}`)"
           >
             <div class="list-item-cell">{{ iqub.name }}</div>
             <div class="list-item-cell">{{ iqub.total_collected }}</div>
@@ -109,6 +109,8 @@ import {
   IonSpinner,
   IonIcon, // Added for icons
   IonBadge, // Added for notification badge in top bar
+  menuController, // Import menuController
+  useIonRouter,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
@@ -123,6 +125,7 @@ import CollectorTabBar from "@/components/CollectorTabBar.vue";
 
 const store = useStore();
 const router = useRouter();
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
 // --- Vuex State & Getters ---
 const myIqubs = computed<Iqub[]>(() => store.getters["iqubs/iqubs"]);
@@ -148,9 +151,11 @@ onMounted(() => {
 // --- Event Handlers for Top Bar (Reused - Implement actual logic) ---
 const openMenu = () => {
   console.log("Open menu clicked"); /* Implement menu logic */
+  menuController.open("app-menu");
 };
 const goToNotifications = () => {
-  console.log("Notifications icon clicked"); /* Navigate */
+  // router.push("/notifications"); // Navigate to notifications page
+  ionRouter.push("/notifications", "forward", "none");
 };
 </script>
 

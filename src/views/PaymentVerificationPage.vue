@@ -204,6 +204,8 @@ import {
   IonBadge,
   IonButton,
   IonToast,
+  menuController,
+  useIonRouter,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
@@ -216,6 +218,7 @@ import CollectorTabBar from "@/components/CollectorTabBar.vue";
 const store = useStore();
 const router = useRouter();
 const route = useRoute();
+const ionRouter = useIonRouter();
 
 const iqubId = computed(() => Number(route.params.iqubId));
 const roundNumber = computed(() => Number(route.params.iqubId));
@@ -278,8 +281,9 @@ watch(
 );
 
 // --- Event Handlers for Top Bar ---
-const openMenu = () => console.log("Open menu clicked");
-const goToNotifications = () => console.log("Notifications icon clicked");
+const openMenu = () => menuController.open("app-menu");
+const goToNotifications = () =>
+  ionRouter.push("/notifications", "forward", "none");
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // --- Verification Actions ---

@@ -1,8 +1,7 @@
 // src/router/index.ts
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHistory } from "@ionic/vue-router";
+import { RouteRecordRaw } from "vue-router";
 import { useStore } from "vuex";
-// Commit import not needed here
-// import { Commit } from "vuex";
 
 // Import necessary page components
 import LoginPage from "../views/LoginPage.vue";
@@ -16,6 +15,8 @@ import CreateIqubPage from "../views/CreateIqubPage.vue"; // Now a full page
 import ProfilePage from "../views/CollectorProfile.vue"; // Assuming this is a full page
 import IqubBookPage from "../views/IqubBookPage.vue"; // Assuming this is a full page
 import PaymentVerificationPage from "../views/PaymentVerificationPage.vue";
+import NotificationsPage from "../views/NotificationsPage.vue"; // Import the new page
+
 // Import standalone pages
 import IqubDetailPage from "../views/IqubDetailPage.vue";
 import AboutView from "../views/AboutView.vue";
@@ -92,6 +93,12 @@ const routes: Array<RouteRecordRaw> = [
     component: PaymentVerificationPage, // This component is rendered fully
     meta: { requiresAuth: true, roles: ["collector"] },
   },
+  {
+    path: "/notifications",
+    name: "notifications",
+    component: NotificationsPage,
+    meta: { requiresAuth: true, roles: ["collector", "member"] }, // Accessible by both roles
+  },
   // --- Member Pages (rendered by root router outlet) ---
   // You'll need similar routes for member tabs if you have a member tab bar
   {
@@ -151,23 +158,23 @@ router.beforeEach((to, from, next) => {
   const isLoggedIn = store.getters["auth/isLoggedIn"];
   const user = store.getters["auth/getUser"] as User | null;
 
-  console.log(`Navigating FROM: ${from.fullPath} TO: ${to.fullPath}`);
-  console.log(`Guard Check: isLoggedIn = ${isLoggedIn}`);
-  console.log(`Guard Check: user = ${JSON.stringify(user)}`);
-  console.log(`Guard Check: Target meta = ${JSON.stringify(to.meta)}`);
+  // console.log(`Navigating FROM: ${from.fullPath} TO: ${to.fullPath}`);
+  // console.log(`Guard Check: isLoggedIn = ${isLoggedIn}`);
+  // console.log(`Guard Check: user = ${JSON.stringify(user)}`);
+  // console.log(`Guard Check: Target meta = ${JSON.stringify(to.meta)}`);
 
   const requiresAuth = to.meta.requiresAuth;
   const requiredRoles = Array.isArray(to.meta.roles) ? to.meta.roles : null;
 
   if (requiresAuth) {
     if (!isLoggedIn) {
-      console.log("Requires auth, but not logged in. Redirecting to login.");
+      // console.log("Requires auth, but not logged in. Redirecting to login.");
       next("/login");
     } else if (user) {
       if (requiredRoles && !requiredRoles.includes(user.role)) {
-        console.warn(
-          `Redirecting: User role "${user.role}" does not match required roles "${requiredRoles}" for route ${to.fullPath}`
-        );
+        // console.warn(
+        //   `Redirecting: User role "${user.role}" does not match required roles "${requiredRoles}" for route ${to.fullPath}`
+        // );
         // Redirect to the appropriate dashboard based on role
         if (user.role === "collector") {
           next("/collector/dashboard"); // Redirect to collector dashboard page
@@ -179,9 +186,9 @@ router.beforeEach((to, from, next) => {
         }
       } else {
         // User is logged in and has the required role (or no specific roles required)
-        console.log(
-          "Authentication and authorization successful. Allowing navigation."
-        );
+        // console.log(
+        //   "Authentication and authorization successful. Allowing navigation."
+        // );
         next();
       }
     } else {
@@ -193,7 +200,7 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     // Route does not require auth
-    console.log("Route does not require auth. Allowing navigation.");
+    // console.log("Route does not require auth. Allowing navigation.");
     // Optional: Prevent logged-in users from accessing auth/onboarding pages directly
     if (
       isLoggedIn &&
@@ -201,9 +208,9 @@ router.beforeEach((to, from, next) => {
         to.path === "/signup" ||
         to.path === "/onboarding")
     ) {
-      console.log(
-        "Logged in user attempting to access auth/onboarding page. Redirecting to dashboard."
-      );
+      // console.log(
+      //   "Logged in user attempting to access auth/onboarding page. Redirecting to dashboard."
+      // );
       if (user?.role === "collector") {
         next("/collector/dashboard");
       } else if (user?.role === "member") {

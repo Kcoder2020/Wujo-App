@@ -114,7 +114,13 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { IonPage, IonContent, IonButton, IonText } from "@ionic/vue";
+import {
+  IonPage,
+  IonContent,
+  IonButton,
+  IonText,
+  useIonRouter,
+} from "@ionic/vue";
 import { Swiper } from "swiper/vue";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
@@ -134,6 +140,8 @@ import roscaProductsCreditCard from "@/assets/img/rosca_products_credit_card.png
 import discoverWujoAfterCredit from "@/assets/img/discover_wujo_after_credit.png";
 
 const router = useRouter();
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
+
 const swiperRef = ref<SwiperType>();
 const isLastSlide = ref(false);
 // Use a new ref to store the *core Swiper instance*
@@ -162,12 +170,14 @@ const next = () => {
 
 const skip = () => {
   // Navigate to signup page
-  router.push("/signup"); // Or maybe '/login' or a home page? Adjust as needed.
+  // router.push("/signup"); // Or maybe '/login' or a home page? Adjust as needed.
+  ionRouter.push("/notifications", "forward", "none");
 };
 
 const getStarted = () => {
   // Navigate to signup page
-  router.push("/signup"); // Adjust to the correct first page after onboarding.
+  // router.push("/signup"); // Adjust to the correct first page after onboarding.
+  ionRouter.push("/signup", "forward", "none");
 };
 </script>
 

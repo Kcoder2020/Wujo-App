@@ -127,6 +127,8 @@ import {
   IonText, // For text elements
   IonBadge, // For the notification count badge
   IonButton, // For the main action button
+  menuController, // Import menuController
+  useIonRouter,
 } from "@ionic/vue";
 
 import { useRouter } from "vue-router"; // Import useRouter
@@ -147,6 +149,7 @@ import CollectorTabBar from "@/components/CollectorTabBar.vue";
 
 const router = useRouter();
 const store = useStore(); // Get the store instance
+const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
 // --- Data Variables (Placeholder - Replace with actual data fetching) ---
 // You will likely fetch this data from your Vuex store or an API call
@@ -191,11 +194,13 @@ const openMenu = () => {
   // Example with Ionic's menu controller:
   // import { menuController } from '@ionic/vue';
   // menuController.open('your-menu-id');
+  menuController.open("app-menu");
 };
 
 const goToNotifications = () => {
   console.log("Notifications icon clicked");
-  // router.push('/notifications'); // Navigate to notifications page
+  // router.push("/notifications"); // Navigate to notifications page
+  ionRouter.push("/notifications", "forward");
 };
 
 const hostLottery = () => {

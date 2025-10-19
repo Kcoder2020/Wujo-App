@@ -41,14 +41,19 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { IonButton } from "@ionic/vue";
+import { useRoute } from "vue-router";
+import { IonButton, useIonRouter, createAnimation } from "@ionic/vue"; // 1. Import createAnimation
 import { useStore } from "vuex";
 
 // Get the current route and router instance
 const route = useRoute();
-const router = useRouter();
+const ionRouter = useIonRouter();
 const store = useStore();
+
+// 2. Define an empty animation builder
+const noAnimation = () => {
+  return createAnimation();
+};
 
 // Function to check if a tab is currently active based on the route path
 const isActive = (tabName: string) => {
@@ -73,7 +78,9 @@ const isActive = (tabName: string) => {
 
 // Function to navigate to the specified path
 const goTo = (path: string) => {
-  router.push(path);
+  // 3. Use ionRouter.push with the empty animation
+  // The 'direction' doesn't matter visually when the animation is empty.
+  ionRouter.push(path, "forward", noAnimation);
 };
 </script>
 
