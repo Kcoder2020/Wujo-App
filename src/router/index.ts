@@ -23,6 +23,10 @@ import AboutView from "../views/AboutView.vue";
 import HomeView from "../views/HomeView.vue";
 import OnboardingPage from "../components/OnboardingPage.vue";
 import JoinedIqubsPage from "../views/JoinedIqubsPage.vue";
+// Import Member pages
+import MemberMyIqubsPage from "../views/MemberMyIqubsPage.vue";
+import MemberDiscoverPage from "../views/MemberDiscoverPage.vue";
+import JoinIqubPage from "../views/JoinIqubPage.vue";
 
 import { User } from "@/types"; // Assuming User type is defined here
 
@@ -100,7 +104,6 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ["collector", "member"] }, // Accessible by both roles
   },
   // --- Member Pages (rendered by root router outlet) ---
-  // You'll need similar routes for member tabs if you have a member tab bar
   {
     path: "/member/dashboard",
     name: "member-dashboard",
@@ -108,8 +111,32 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ["member"] },
   },
   {
+    path: "/member/my-iqubs",
+    name: "member-my-iqubs",
+    component: MemberMyIqubsPage,
+    meta: { requiresAuth: true, roles: ["member"] },
+  },
+  {
+    path: "/member/discover",
+    name: "member-discover",
+    component: MemberDiscoverPage,
+    meta: { requiresAuth: true, roles: ["member"] },
+  },
+  {
+    path: "/member/profile",
+    name: "member-profile",
+    component: ProfilePage, // Reusing the profile component
+    meta: { requiresAuth: true, roles: ["member"] },
+  },
+  {
+    path: "/member/join-iqub",
+    name: "join-iqub",
+    component: JoinIqubPage,
+    meta: { requiresAuth: true, roles: ["member"] },
+  },
+  {
     path: "/member/joined-iqubs",
-    name: "joined-iqubs", // Use a unique name
+    name: "joined-iqubs", // Legacy route, can be kept for backward compatibility
     component: JoinedIqubsPage,
     meta: { requiresAuth: true, roles: ["member"] },
   },
@@ -119,12 +146,6 @@ const routes: Array<RouteRecordRaw> = [
     component: IqubDetailPage,
     meta: { requiresAuth: true, roles: ["collector"] },
     props: true,
-  },
-  {
-    path: "/member/profile", // Example member profile route
-    name: "member-profile", // Use a unique name
-    component: ProfilePage, // Assuming you might reuse the profile component
-    meta: { requiresAuth: true, roles: ["member"] },
   },
   // --- Standalone Routes (rendered by the root <ion-router-outlet>) ---
   {

@@ -1,0 +1,127 @@
+<template>
+  <ion-page>
+    <ion-content :fullscreen="true">
+      <!-- Custom Top Bar -->
+      <div class="top-bar">
+        <ion-icon
+          :icon="menuOutline"
+          class="menu-icon"
+          @click="openMenu"
+        ></ion-icon>
+        <ion-text class="page-title">Discover</ion-text>
+        <div class="notification-container">
+          <ion-icon
+            :icon="notificationsOutline"
+            class="notification-icon"
+            @click="goToNotifications"
+          ></ion-icon>
+          <ion-badge color="danger" class="notification-badge">{{
+            notificationCount
+          }}</ion-badge>
+        </div>
+      </div>
+
+      <member-tab-bar></member-tab-bar>
+
+      <div class="page-content">
+        <ion-text class="page-heading"><h2>Discover Iqubs</h2></ion-text>
+        <p>Discover and join new Iqubs here.</p>
+      </div>
+    </ion-content>
+  </ion-page>
+</template>
+
+<script setup lang="ts">
+import { ref } from "vue";
+import { IonPage, IonContent, IonIcon, IonText, IonBadge } from "@ionic/vue";
+import { menuOutline, notificationsOutline } from "ionicons/icons";
+import MemberTabBar from "@/components/MemberTabBar.vue";
+
+const notificationCount = ref(3);
+
+const openMenu = () => {
+  console.log("Open menu clicked");
+};
+
+const goToNotifications = () => {
+  console.log("Notifications icon clicked");
+};
+</script>
+
+<style scoped>
+:root {
+  --ion-color-wujo-primary: #006a52;
+  --ion-color-wujo-light-grey: #f0f2f5;
+}
+
+ion-content {
+  --background: var(--ion-color-wujo-light-grey);
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  display: block;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: var(--ion-color-wujo-primary);
+  color: white;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.menu-icon,
+.notification-icon {
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  flex-grow: 1;
+  text-align: center;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.notification-container {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 10px;
+  padding: 3px 5px;
+  border-radius: 10px;
+  --background: var(--ion-color-danger, #eb445a);
+  color: white;
+  z-index: 1;
+}
+
+.page-content {
+  padding: 20px;
+}
+
+.page-heading {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+</style>
