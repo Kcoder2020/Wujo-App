@@ -1,6 +1,6 @@
-<template>
+<template v-slot:bottom>
   <ion-tabs>
-    <ion-tab-bar slot="bottom">
+    <ion-tab-bar>
       <ion-tab-button tab="joined-iqubs" href="/member/joined-iqubs">
         <ion-icon :icon="peopleOutline" />
         <ion-label>Joined Iqubs</ion-label>

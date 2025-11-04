@@ -1,5 +1,5 @@
-<template>
-  <ion-tab-bar v-if="isLoggedIn" slot="bottom">
+<template v-slot:bottom>
+  <ion-tab-bar v-if="isLoggedIn">
     <template v-if="currentUser?.role === 'collector'">
       <ion-tab-button tab="my-iqubs" @click="navigate('/collector/my-iqubs')">
         <ion-icon :icon="listOutline" />

@@ -4,11 +4,13 @@
       <ion-title class="logo-container">
         <ion-img :src="logo" class="logo" alt="Wujo Logo"></ion-img>
       </ion-title>
-      <ion-buttons slot="end">
-        <ion-button>
-          <ion-img :src="profile" class="profile-image" alt="User Profile" />
-        </ion-button>
-      </ion-buttons>
+      <template v-slot:end>
+        <ion-buttons>
+          <ion-button>
+            <ion-img :src="profile" class="profile-image" alt="User Profile" />
+          </ion-button>
+        </ion-buttons>
+      </template>
     </ion-toolbar>
   </ion-header>
 </template>
