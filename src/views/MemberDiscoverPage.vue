@@ -8,7 +8,7 @@
           class="menu-icon"
           @click="openMenu"
         ></ion-icon>
-        <ion-text class="page-title">Discover</ion-text>
+        <ion-text class="page-title">HI Iquber</ion-text>
         <div class="notification-container">
           <ion-icon
             :icon="notificationsOutline"

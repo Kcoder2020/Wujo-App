@@ -16,7 +16,7 @@
       fill="clear"
       @click="goTo('/member/my-iqubs')"
     >
-      Iqub Book
+      IqubBook
     </ion-button>
 
     <ion-button
@@ -25,7 +25,7 @@
       fill="clear"
       @click="goTo('/member/discover')"
     >
-      Discover
+      Discover Page
     </ion-button>
 
     <ion-button

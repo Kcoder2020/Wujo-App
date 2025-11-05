@@ -27,6 +27,7 @@ import JoinedIqubsPage from "../views/JoinedIqubsPage.vue";
 import MemberMyIqubsPage from "../views/MemberMyIqubsPage.vue";
 import MemberDiscoverPage from "../views/MemberDiscoverPage.vue";
 import JoinIqubPage from "../views/JoinIqubPage.vue";
+import MemberProfilePage from "../views/MemberProfilePage.vue";
 
 import { User } from "@/types"; // Assuming User type is defined here
 
@@ -125,7 +126,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/member/profile",
     name: "member-profile",
-    component: ProfilePage, // Reusing the profile component
+    component: MemberProfilePage,
     meta: { requiresAuth: true, roles: ["member"] },
   },
   {
