@@ -16,7 +16,7 @@
       fill="clear"
       @click="goTo('/member/my-iqubs')"
     >
-      My Iqubs
+      Iqub Book
     </ion-button>
 
     <ion-button
