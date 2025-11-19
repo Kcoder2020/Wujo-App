@@ -40,70 +40,31 @@
           </div>
 
           <!-- Iqub Cards -->
-          <div class="iqub-cards-container">
-            <!-- Joined Iqub 1 -->
-            <div class="iqub-card">
-              <ion-text class="card-title">Joined Iqub 1</ion-text>
-              <ion-text class="card-amount"
-                >Total Iqub Amount: {{ iqubs[0].totalAmount }}</ion-text
-              >
-              <ion-text class="card-saved"
-                >So far Saved Amount :{{ iqubs[0].savedAmount }}</ion-text
-              >
-              <ion-text
-                class="card-status"
-                :class="{
-                  'status-normal': iqubs[0].statusColor === 'normal',
-                  'status-green': iqubs[0].statusColor === 'green',
-                  'status-red': iqubs[0].statusColor === 'red',
-                }"
-              >
-                Status {{ iqubs[0].status }}
+          <div v-if="iqubs.length" class="iqub-cards-container">
+            <div v-for="iqub in iqubs" :key="iqub.id" class="iqub-card">
+              <ion-text class="card-title">{{
+                iqub.name || `Iqub #${iqub.id}`
+              }}</ion-text>
+              <ion-text class="card-amount">
+                Saving Amount: {{ formatAmount(iqub.saving_amount) }}
               </ion-text>
-            </div>
-
-            <!-- Joined Iqub 2 -->
-            <div class="iqub-card">
-              <ion-text class="card-title">Joined Iqub 2</ion-text>
-              <ion-text class="card-amount"
-                >Total Iqub Amount: {{ iqubs[1].totalAmount }}</ion-text
-              >
-              <ion-text class="card-saved"
-                >So far Saved Amount :{{ iqubs[1].savedAmount }}</ion-text
-              >
-              <ion-text
-                class="card-status"
-                :class="{
-                  'status-normal': iqubs[1].statusColor === 'normal',
-                  'status-green': iqubs[1].statusColor === 'green',
-                  'status-red': iqubs[1].statusColor === 'red',
-                }"
-              >
-                Status {{ iqubs[1].status }}
+              <ion-text class="card-saved">
+                Joined Members:
+                {{ iqub.joined_members ?? iqub.members_count ?? "N/A" }}
               </ion-text>
-            </div>
-
-            <!-- Joined Iqub 3 -->
-            <div class="iqub-card">
-              <ion-text class="card-title">Joined Iqub 3</ion-text>
-              <ion-text class="card-amount"
-                >Total Iqub Amount: {{ iqubs[2].totalAmount }}</ion-text
-              >
-              <ion-text class="card-saved"
-                >So far Saved Amount :{{ iqubs[2].savedAmount }}</ion-text
-              >
-              <ion-text
-                class="card-status"
-                :class="{
-                  'status-normal': iqubs[2].statusColor === 'normal',
-                  'status-green': iqubs[2].statusColor === 'green',
-                  'status-red': iqubs[2].statusColor === 'red',
-                }"
-              >
-                Status {{ iqubs[2].status }}
+              <ion-text class="card-status" :class="statusClass(iqub.status)">
+                Status {{ iqub.status ?? "N/A" }}
               </ion-text>
             </div>
           </div>
+          <ion-text v-else class="empty-state">
+            You have not joined any Iqubs yet.
+          </ion-text>
+        </div>
+
+        <div class="response-section">
+          <ion-text class="response-title">Latest Server Response</ion-text>
+          <pre class="response-pre">{{ formattedResponse }}</pre>
         </div>
       </div>
     </ion-content>
@@ -111,37 +72,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { IonPage, IonContent, IonIcon, IonText, IonBadge } from "@ionic/vue";
 import { menuOutline, notificationsOutline } from "ionicons/icons";
+import { useStore } from "vuex";
 import MemberTabBar from "@/components/MemberTabBar.vue";
 
+const store = useStore();
 const notificationCount = ref(3);
 
-// Sample data for Iqubs - replace with actual data from store/API
-const iqubs = ref([
-  {
-    id: 1,
-    totalAmount: "40,5000ETB",
-    savedAmount: "10,000 ETB",
-    status: "8/10",
-    statusColor: "normal", // normal, green, or red
-  },
-  {
-    id: 2,
-    totalAmount: "50,000ETB",
-    savedAmount: "45,000 ETB",
-    status: "9/10",
-    statusColor: "green", // green for good progress
-  },
-  {
-    id: 3,
-    totalAmount: "30,000ETB",
-    savedAmount: "15,000 ETB",
-    status: "5/10",
-    statusColor: "red", // red for low progress
-  },
-]);
+const iqubs = computed(() => store.getters["iqubs/iqubs"] || []);
+const fetchStatus = computed(() => store.getters["iqubs/status"]);
+const fetchError = computed(() => store.getters["iqubs/error"]);
+
+const responsePayload = computed(() => ({
+  status: fetchStatus.value,
+  error: fetchError.value,
+  data: iqubs.value,
+}));
+
+const formattedResponse = computed(() =>
+  JSON.stringify(responsePayload.value, null, 2)
+);
+
+const statusClass = (status?: string) => {
+  if (!status) {
+    return "status-normal";
+  }
+  const normalized = status.toLowerCase();
+  if (normalized.includes("complete") || normalized.includes("success")) {
+    return "status-green";
+  }
+  if (normalized.includes("pending") || normalized.includes("progress")) {
+    return "status-normal";
+  }
+  return "status-red";
+};
+
+const formatAmount = (value?: string | number) => {
+  if (value === null || value === undefined) {
+    return "N/A";
+  }
+  return typeof value === "number" ? `${value} ETB` : value;
+};
+
+onMounted(() => {
+  store.dispatch("iqubs/fetchMemberIqubs");
+});
 
 const openMenu = () => {
   console.log("Open menu clicked");
@@ -310,5 +287,38 @@ ion-content {
 
 .status-red {
   color: #eb445a; /* Red color */
+}
+
+.empty-state {
+  display: block;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #555;
+}
+
+.response-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8f9fb;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.response-title {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.response-pre {
+  background: #1e1e1e;
+  color: #e8e8e8;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-x: auto;
+  line-height: 1.4;
 }
 </style>

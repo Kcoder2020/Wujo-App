@@ -1,5 +1,6 @@
 import apiService from "../../services/apiService"; // Adjust the path as needed
 import { Iqub, Member, PaymentRound } from "../../types"; // Adjust the path as needed
+import router from "../../router"; // Needed for navigation on unauthorized access
 import { Commit } from "vuex";
 
 type FetchStatus = "idle" | "loading" | "success" | "error";
@@ -16,7 +17,7 @@ interface IqubState {
   // initiateLotteryStatus: FetchStatus;
   // initiateLotteryError: string | null;
   iqubPaymentRounds: PaymentRound[];
-  paymentRoundsStatus: string | null;
+  paymentRoundsStatus: FetchStatus;
   paymentRoundsError: string | null;
   // **ADD state for Single Payment Round Details**
   selectedPaymentRoundDetails: PaymentRound | null; // Details for a specific round
@@ -485,6 +486,50 @@ const actions = {
     }
   },
 
+  async fetchMemberIqubs({ commit }: { commit: Commit }) {
+    commit("setStatus", "loading");
+    commit("setError", null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found.");
+      }
+      const response = await apiService.get("/joinedIqubs", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("User iqubs fetched:", response.data);
+      if (response.data && Array.isArray(response.data.data)) {
+        commit("setIqubs", response.data.data);
+        commit("setStatus", "success");
+      } else {
+        console.error(
+          "Unexpected API response structure for iqubs list:",
+          response.data
+        );
+        commit("setError", "Received unexpected data format for iqubs list.");
+        commit("setStatus", "error");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch iqubs:", error);
+      const serverErrorMessage = error.response?.data?.message;
+      if (serverErrorMessage === "unauthorized access!") {
+        console.log("Unauthorized access detected. Navigating to login.");
+        // 2. Clear token to force a full re-auth flow
+        localStorage.removeItem("token");
+        // 3. Use the imported router to navigate
+        // Replace 'Login' with the actual name or path of your login route
+        router.push("/login");
+        // Stop further error processing since we are redirecting
+        return;
+      }
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch iqubs.";
+      commit("setError", errorMessage);
+      commit("setStatus", "error");
+    }
+  },
   // **ADD action to Verify a payment round (corresponds to Page 13)**
   // This action might take the round ID or payment ID and the verification decision (approve/deny)
   async verifyPaymentRound(
