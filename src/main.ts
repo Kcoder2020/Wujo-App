@@ -45,7 +45,10 @@ async function registerServiceWorker() {
   }
 }
 
-const app = createApp(App).use(IonicVue).use(router).use(store);
+const app = createApp(App)
+  .use(IonicVue, { animated: false })
+  .use(router)
+  .use(store);
 
 router.isReady().then(() => {
   app.mount("#app");
