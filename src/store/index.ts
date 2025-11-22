@@ -1,6 +1,7 @@
 import { createStore } from "vuex";
 import auth from "./modules/auth"; // Corrected to default import
 import iqubs from "./modules/iqubs";
+import member from "./modules/member";
 
 export default createStore({
   state: {},
@@ -10,5 +11,6 @@ export default createStore({
   modules: {
     auth, // Use the default import
     iqubs,
+    member,
   },
 });

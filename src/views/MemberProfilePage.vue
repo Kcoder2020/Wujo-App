@@ -110,7 +110,7 @@ import {
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 
 // Import Icons
 import { menuOutline, notificationsOutline } from "ionicons/icons";
@@ -123,22 +123,22 @@ const router = useRouter();
 
 const notificationCount = ref(3);
 
-// --- Profile Data (from Auth store) ---
+// --- Profile Data (from Member store) ---
 const memberProfileData = computed(() => {
-  const user = store.getters["auth/getUser"];
-  // If user data exists, return it with member-specific stats
-  if (user) {
+  const profile = store.getters["member/profile"];
+  // If profile data exists, return it with member-specific stats
+  if (profile) {
     return {
-      name: user.name || "Thomas Doe",
-      phone: user.phone || "+2519346232",
-      avatar_url: user.avatar_url || null,
-      iqub_joined_count: user.iqub_joined_count || "10",
-      lotteries_won_count: user.lotteries_won_count || "10",
-      total_saved: user.total_saved || "10,000",
-      active_iqubs: user.active_iqubs || "10",
+      name: profile.name || "Thomas Doe",
+      phone: profile.phone || "+2519346232",
+      avatar_url: profile.avatar_url || null,
+      iqub_joined_count: profile.iqub_joined_count || "10",
+      lotteries_won_count: profile.lotteries_won_count || "10",
+      total_saved: profile.total_saved || "10,000",
+      active_iqubs: profile.active_iqubs || "10",
     };
   }
-  // Return sample data for development
+  // Return sample data for development if no profile is loaded yet
   return {
     name: "Thomas Doe",
     phone: "+2519346232",
@@ -148,6 +148,11 @@ const memberProfileData = computed(() => {
     total_saved: "10,000",
     active_iqubs: "10",
   };
+});
+
+// Fetch member profile on component mount
+onMounted(() => {
+  store.dispatch("member/fetchMemberProfile");
 });
 
 // --- Event Handlers for Top Bar ---
