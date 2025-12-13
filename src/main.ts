@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
+// import { PushNotifications } from "@capacitor/push-notifications";
 import apiService from "./services/apiService";
 import { IonicVue } from "@ionic/vue";
 import store from "./store";
@@ -73,45 +73,45 @@ router.isReady().then(() => {
     }
   }
 
-  if (Capacitor.getPlatform() !== "web") {
-    PushNotifications.addListener("registration", (token) => {
-      console.log("Push registration success, token: " + token.value);
-      sendDeviceTokenToBackend(token.value);
-    });
+  // if (Capacitor.getPlatform() !== "web") {
+  //   PushNotifications.addListener("registration", (token) => {
+  //     console.log("Push registration success, token: " + token.value);
+  //     sendDeviceTokenToBackend(token.value);
+  //   });
 
-    PushNotifications.addListener("registrationError", (error) => {
-      console.log("Error on registration: " + JSON.stringify(error));
-    });
+  //   PushNotifications.addListener("registrationError", (error) => {
+  //     console.log("Error on registration: " + JSON.stringify(error));
+  //   });
 
-    PushNotifications.addListener(
-      "pushNotificationReceived",
-      (notification) => {
-        console.log("Push received: " + JSON.stringify(notification));
-        alert(
-          "Push received: " +
-            notification.title +
-            ", body: " +
-            notification.body
-        );
-      }
-    );
+  //   PushNotifications.addListener(
+  //     "pushNotificationReceived",
+  //     (notification) => {
+  //       console.log("Push received: " + JSON.stringify(notification));
+  //       alert(
+  //         "Push received: " +
+  //           notification.title +
+  //           ", body: " +
+  //           notification.body
+  //       );
+  //     }
+  //   );
 
-    PushNotifications.addListener(
-      "pushNotificationActionPerformed",
-      (notification) => {
-        console.log("Push action performed: " + JSON.stringify(notification));
-      }
-    );
+  //   PushNotifications.addListener(
+  //     "pushNotificationActionPerformed",
+  //     (notification) => {
+  //       console.log("Push action performed: " + JSON.stringify(notification));
+  //     }
+  //   );
 
-    PushNotifications.requestPermissions().then((result) => {
-      if (result.receive === "granted") {
-        PushNotifications.register();
-      } else {
-        console.error("Permissions were not granted");
-      }
-    });
-  } else {
-    console.log("Push Notifications are not available on the web.");
-    // You might want to add alternative web push notification logic here if needed
-  }
+  //   PushNotifications.requestPermissions().then((result) => {
+  //     if (result.receive === "granted") {
+  //       PushNotifications.register();
+  //     } else {
+  //       console.error("Permissions were not granted");
+  //     }
+  //   });
+  // } else {
+  //   console.log("Push Notifications are not available on the web.");
+  //   // You might want to add alternative web push notification logic here if needed
+  // }
 });

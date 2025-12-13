@@ -146,16 +146,17 @@ This document details the contracts for interacting with the Wujo backend REST A
     ```
 *   **Error Response (401/5xx):** Standard error format.
 
-### 3.3. Add Member
+### 3.3. Add Member to Iqub
 
 *   **Method:** `POST`
-*   **Path:** `/addMember`
+*   **Path:** `/iqubs/{iqubId}/members`
 *   **Headers:** `Content-Type: application/json`, `Accept: application/json`, `Authorization: Bearer <TOKEN>`
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub to add the member to.
 *   **Request Body:**
     ```json
     {
-      "phone": "string (required, E.164 format)",
-      "iqub": "number (required, ID of the Iqub)"
+      "phone": "string (required, E.164 format)"
     }
     ```
 *   **Success Response (2xx):**
@@ -165,18 +166,19 @@ This document details the contracts for interacting with the Wujo backend REST A
     }
     ```
 *   **Error Response (4xx/401/404/5xx):** Standard error format (e.g., "Iqub not found", "Member already exists", "Iqub full").
+
 ### 3.4. Initiate Lottery
 
-*   **Method:** `GET`
-*   **Path:** `/initiatelottery`
+*   **Method:** `POST`
+*   **Path:** `/iqubs/{iqubId}/lottery/initiate`
 *   **Headers:** `Accept: application/json`, `Authorization: Bearer <TOKEN>`
-*   **Query Parameters:**
-    *   `iqub_id` (Number, required): The ID of the Iqub for which to initiate the lottery.
-    *   `agent_id` (Number, required): The ID of the Collector initiating the lottery. (*Note: Confirm with backend team if this is strictly necessary, as the Collector's ID should be derivable from the Bearer Token.*)
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub for which to initiate the lottery.
+*   **Request Body:** (Empty)
 *   **Success Response (200 OK):**
     ```json
     {
-      "message": "Lottery initiated successfully. Winner will be notified."
+      "message": "Lottery initiated successfully."
       // Optional: Might include round number or other context, but not the winner details.
     }
     ```
@@ -184,18 +186,17 @@ This document details the contracts for interacting with the Wujo backend REST A
     *   Standard error format.
     *   Possible specific errors: "Lottery cannot be initiated for this Iqub status", "Round already has a lottery winner", "Iqub not found", "Permission denied".
 
-### 3.5. Set/Update Next Lottery Date (New Endpoint Assumption)
+### 3.5. Set/Update Next Lottery Date
 
-*   **Method:** `PATCH` (Suitable for partial updates)
-*   **Path:** `/iqubs/{id}` (*Assuming update via the main Iqub resource*)
-    *   *Alternative Path:* `/iqubs/{id}/lottery-date` (If backend prefers a dedicated sub-resource endpoint)
+*   **Method:** `PUT`
+*   **Path:** `/iqubs/{iqubId}/next-lottery-date`
 *   **Headers:** `Content-Type: application/json`, `Accept: application/json`, `Authorization: Bearer <TOKEN>`
 *   **Path Parameters:**
-    *   `id` (Number, required): The ID of the Iqub to update.
+    *   `iqubId` (Number, required): The ID of the Iqub to update.
 *   **Request Body:**
     ```json
     {
-      "next_lottery_date": "string (required, ISO 8601 Date or DateTime format, e.g., YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)"
+      "date": "string (required, ISO 8601 Date or DateTime format, e.g., YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)"
     }
     ```
 *   **Success Response (200 OK):**
@@ -208,6 +209,71 @@ This document details the contracts for interacting with the Wujo backend REST A
 *   **Error Response (4xx/401/403/404/422/5xx):**
     *   Standard error format.
     *   Possible specific errors: "Invalid date format", "Date must be in the future", "Iqub not found", "Permission denied".
+
+### 3.6. Get Iqub Details
+
+*   **Method:** `GET`
+*   **Path:** `/iqubs/{iqubId}`
+*   **Headers:** `Accept: application/json`, `Authorization: Bearer <TOKEN>`
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub to retrieve.
+*   **Success Response (2xx):**
+    ```json
+    { /* Iqub Object with full details */ }
+    ```
+*   **Error Response (401/404/5xx):** Standard error format.
+
+### 3.7. Get Iqub Payment Rounds
+
+*   **Method:** `GET`
+*   **Path:** `/iqubs/{iqubId}/rounds`
+*   **Headers:** `Accept: application/json`, `Authorization: Bearer <TOKEN>`
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub to retrieve payment rounds for.
+*   **Success Response (2xx):**
+    ```json
+    [
+      { /* Payment Round Object */ }
+      // ... more payment round objects
+    ]
+    ```
+*   **Error Response (401/404/5xx):** Standard error format.
+
+### 3.8. Get Payment Round Details
+
+*   **Method:** `GET`
+*   **Path:** `/iqubs/{iqubId}/rounds/{roundNumber}`
+*   **Headers:** `Accept: application/json`, `Authorization: Bearer <TOKEN>`
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub.
+    *   `roundNumber` (Number, required): The round number to retrieve details for.
+*   **Success Response (2xx):**
+    ```json
+    { /* Payment Round Object with full details */ }
+    ```
+*   **Error Response (401/404/5xx):** Standard error format.
+
+### 3.9. Verify Payment Round
+
+*   **Method:** `PUT`
+*   **Path:** `/iqubs/{iqubId}/rounds/{roundId}/verify`
+*   **Headers:** `Content-Type: application/json`, `Accept: application/json`, `Authorization: Bearer <TOKEN>`
+*   **Path Parameters:**
+    *   `iqubId` (Number, required): The ID of the Iqub.
+    *   `roundId` (Number, required): The ID of the payment round to verify.
+*   **Request Body:**
+    ```json
+    {
+      "status": "verified" | "rejected"
+    }
+    ```
+*   **Success Response (2xx):**
+    ```json
+    {
+      "message": "Payment round verified successfully."
+    }
+    ```
+*   **Error Response (401/404/5xx):** Standard error format.
 
 ## 4. Member Endpoints
 
@@ -257,11 +323,11 @@ This document details the contracts for interacting with the Wujo backend REST A
 ## 6. Agent Instructions
 
 *   **Implement API Service:** Create a dedicated service (e.g., `src/services/apiService.ts`) or use Vuex actions to encapsulate all API calls defined here.
-*   **Implement Initiate Lottery Call:** Add the function call for `GET /initiatelottery` with required query parameters to the API service/Vuex actions.
+*   **Implement Initiate Lottery Call:** Add the function call for `POST /iqubs/{id}/lottery/initiate` with required parameters to the API service/Vuex actions.
 *   **Use Axios:** Utilize the configured Axios instance for making requests.
 *   **Handle Auth:** Ensure the `Authorization: Bearer <TOKEN>` header is correctly added to all protected requests, retrieving the token from the Vuex store.
 *   **Type Payloads:** Use TypeScript interfaces for request bodies and expected response structures based on `02_data_models.md` and the examples above.
 *   **Error Handling:** Implement logic in the API service/actions to catch errors, parse error messages from responses, and communicate failures back to the calling component or Vuex module.
 *   **Clarify Ambiguities:** Note any assumptions made about response structures or parameter types and seek clarification if possible. Confirm the correct logout path (`/logout` vs `/signout`). Confirm expected types for pattern/amount fields.
 *   **Implement Fetch Lottery Call:** Add the function call for `GET /fetchlottery` with required query parameters to the API service/Vuex actions. Handle the response structure, including the case where `winner` is `null`.
-*   **Implement Set Lottery Date Call:** Add the function call for `PATCH /iqubs/{id}` (or alternative path) to the API service/Vuex actions, sending the `next_lottery_date` in the request body. Handle the response.
+*   **Implement Set Lottery Date Call:** Add the function call for `PUT /iqubs/{iqubId}/next-lottery-date` to the API service/Vuex actions, sending the `date` in the request body. Handle the response.

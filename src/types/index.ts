@@ -5,7 +5,7 @@ export interface AppState {
 }
 
 export interface Iqub {
-  id: number;
+  id: number | string; // Support both numeric IDs and MongoDB ObjectId strings
   name: string;
   collector_id: number;
   saving_pattern: number | string;
@@ -63,4 +63,64 @@ export interface PaymentRound {
   // Optional: Who is responsible for paying this round (if different from winner)?
   // paying_member_id?: number | null;
   // paying_member_name?: string | null;
+}
+
+// ** Notification System Types **
+export type NotificationType =
+  | "payment_verification"
+  | "payment_reminder"
+  | "payment_confirmed"
+  | "lottery_scheduled"
+  | "lottery_win"
+  | "member_join_request"
+  | "iqub_invitation"
+  | "iqub_milestone"
+  | "system_update"
+  | "account_security"
+  | "general";
+
+export type UserRole = "collector" | "member";
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  timestamp: string; // ISO 8601 format
+  read: boolean;
+  type: NotificationType;
+  targetRoles: UserRole[]; // ['collector'] | ['member'] | ['collector', 'member']
+  priority: "low" | "medium" | "high" | "urgent";
+  actionUrl?: string; // Optional navigation target
+  metadata?: {
+    iqubId?: number;
+    memberId?: number;
+    paymentId?: number;
+    [key: string]: any;
+  };
+}
+
+// ** SideMenu Types **
+export interface MenuItemConfig {
+  label?: string;
+  icon?: string;
+  route?: string | null;
+  roles?: UserRole[]; // Made optional for divider items
+  badge?: () => number; // Reactive badge count function
+  action?: string; // For special actions like logout
+  divider?: boolean; // For visual separators
+}
+
+export interface MenuSection {
+  title?: string; // Optional section title
+  items: MenuItemConfig[];
+}
+
+// ** Tab Bar Types **
+export interface TabItemConfig {
+  name: string; // Unique identifier (e.g., "dashboard")
+  label: string; // Display text (e.g., "Dashboard")
+  icon: string; // Ionicon reference
+  route: string; // Navigation path (e.g., "/collector/dashboard")
+  roles: UserRole[]; // Access control
+  badge?: () => number; // Optional reactive badge count
 }

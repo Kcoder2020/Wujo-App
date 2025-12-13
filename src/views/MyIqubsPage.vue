@@ -1,96 +1,154 @@
 <template>
   <ion-page>
-    <!-- Removed ion-header, using custom top bar within ion-content -->
     <ion-content :fullscreen="true">
-      <!-- Custom Top Bar (Menu, Title, Notification) - Reused component/structure -->
-      <!-- You might want to make this a separate component for reusability -->
-      <div class="top-bar">
-        <ion-icon
-          :icon="menuOutline"
-          class="menu-icon"
-          @click="openMenu"
-        ></ion-icon>
-        <!-- Assuming you have a menu -->
-        <ion-text class="page-title">HI Collector</ion-text>
-        <div class="notification-container">
+      <!-- Hero Section with Dark Green Gradient -->
+      <div class="hero-section">
+        <div class="hero-header">
+          <ion-icon
+            :icon="arrowBackOutline"
+            class="back-icon"
+            @click="goBack"
+          ></ion-icon>
           <ion-icon
             :icon="notificationsOutline"
             class="notification-icon"
             @click="goToNotifications"
           ></ion-icon>
-          <!-- Use a placeholder notification count or fetch from store -->
-          <ion-badge color="danger" class="notification-badge">3</ion-badge>
+        </div>
+        <div class="hero-content">
+          <ion-icon :icon="walletOutline" class="hero-icon"></ion-icon>
+          <h1 class="hero-title">My Iqubs</h1>
+          <p class="hero-subtitle">Manage your savings groups</p>
         </div>
       </div>
 
-      <!-- Collector Tab Bar (Integrated Here) - Reused component -->
-      <!-- Pass prop to indicate the active tab -->
-      <collector-tab-bar active-tab="my-iqubs"></collector-tab-bar>
-
-      <!-- Action/Filter Button Row -->
-      <div class="action-buttons-row">
-        <ion-button fill="outline" size="small" class="action-button"
-          >Copy</ion-button
-        >
-        <ion-button fill="outline" size="small" class="action-button"
-          >Excel</ion-button
-        >
-        <ion-button fill="outline" size="small" class="action-button"
-          >PDF</ion-button
-        >
-        <ion-button fill="outline" size="small" class="action-button"
-          >Print</ion-button
-        >
-      </div>
-
-      <!-- Main Content Area for List -->
-      <div class="list-content">
-        <!-- Page Heading -->
-        <ion-text class="page-heading"><h2>List Of Iqubs</h2></ion-text>
-
-        <!-- Loading Indicator -->
-        <div v-if="iqubsStatus === 'loading'" class="loading-indicator">
-          <IonSpinner name="dots" color="wujo-primary" />
-          <ion-text>Loading Iqubs...</ion-text>
-        </div>
-        <!-- Error Message -->
-        <div v-else-if="iqubsStatus === 'error'" class="error-message">
-          <p>Error loading Iqubs: {{ iqubsError }}</p>
+      <!-- Main Content Container -->
+      <div class="content-container">
+        <!-- Search Bar -->
+        <div class="search-container">
+          <ion-searchbar
+            v-model="searchQuery"
+            placeholder="Search Iqubs..."
+            class="custom-searchbar"
+            :debounce="300"
+          ></ion-searchbar>
         </div>
 
-        <!-- Iqubs List -->
-        <div v-else class="iqubs-list-container">
-          <!-- List Header -->
-          <div class="list-header">
-            <div class="header-item">Iqub Name</div>
-            <div class="header-item">Total Collected Amount</div>
-            <div class="header-item right-align">Hosted Lottery</div>
-          </div>
-
-          <!-- List Items -->
-          <div
-            v-for="iqub in myIqubs"
-            :key="iqub.id"
-            class="list-item"
-            @click="() => ionRouter.push(`/iqub/${iqub.id}`)"
+        <!-- Filter Chips -->
+        <div class="filter-chips">
+          <ion-chip
+            v-for="filter in filters"
+            :key="filter.value"
+            :class="{ active: selectedFilter === filter.value }"
+            @click="selectedFilter = filter.value"
+            class="filter-chip"
           >
-            <div class="list-item-cell">{{ iqub.name }}</div>
-            <div class="list-item-cell">{{ iqub.total_collected }}</div>
-            <!-- Assuming hosted_lottery is the correct field for '8/10' like format -->
-            <div class="list-item-cell right-align">
-              {{ iqub.hosted_lottery }}
+            <ion-label>{{ filter.label }}</ion-label>
+          </ion-chip>
+        </div>
+
+        <!-- Pull to Refresh -->
+        <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -->
+        <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+          <ion-refresher-content
+            :pulling-icon="chevronDownCircleOutline"
+            pulling-text="Pull to refresh"
+            refreshing-spinner="circles"
+          ></ion-refresher-content>
+        </ion-refresher>
+
+        <!-- Loading State with Skeleton Loaders -->
+        <div v-if="iqubsStatus === 'loading'" class="iqubs-grid">
+          <div v-for="i in 3" :key="`skeleton-${i}`" class="skeleton-card">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-ring"></div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-text short"></div>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="iqubsStatus === 'error'" class="error-state">
+          <ion-icon :icon="alertCircleOutline" class="error-icon"></ion-icon>
+          <p class="error-message">{{ iqubsError }}</p>
+          <ion-button @click="retryFetch" class="retry-button">
+            <template #start>
+              <ion-icon :icon="refreshOutline"></ion-icon>
+            </template>
+            Retry
+          </ion-button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="filteredIqubs.length === 0" class="empty-state">
+          <ion-icon :icon="folderOpenOutline" class="empty-icon"></ion-icon>
+          <h3 class="empty-title">No Iqubs Found</h3>
+          <p class="empty-message">
+            {{
+              searchQuery || selectedFilter !== "all"
+                ? "Try adjusting your search or filters"
+                : "Start your savings journey by creating your first Iqub"
+            }}
+          </p>
+          <ion-button
+            v-if="!searchQuery && selectedFilter === 'all'"
+            @click="goToCreateIqub"
+            class="empty-cta"
+          >
+            Create Your First Iqub
+          </ion-button>
+        </div>
+
+        <!-- Iqubs Grid -->
+        <div v-else class="iqubs-grid">
+          <div
+            v-for="iqub in filteredIqubs"
+            :key="iqub.id"
+            class="iqub-card"
+            @click="goToIqubDetail(iqub.id)"
+          >
+            <!-- Card Header -->
+            <div class="card-header">
+              <h3 class="iqub-name">{{ iqub.name }}</h3>
+              <ion-badge
+                :color="getStatusColor(iqub.status)"
+                class="status-badge"
+              >
+                {{ iqub.status || "active" }}
+              </ion-badge>
+            </div>
+
+            <!-- Progress Ring -->
+            <div class="card-progress">
+              <progress-ring :percentage="calculateProgress(iqub)" :size="80" />
+            </div>
+
+            <!-- Card Stats -->
+            <div class="card-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total Collected</span>
+                <span class="stat-value">{{
+                  formatCurrency(iqub.total_collected)
+                }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Hosted Lottery</span>
+                <span class="stat-value">{{
+                  iqub.hosted_lottery || "0/0"
+                }}</span>
+              </div>
             </div>
           </div>
-
-          <!-- Handle Empty State -->
-          <div
-            v-if="myIqubs.length === 0 && iqubsStatus === 'success'"
-            class="empty-state"
-          >
-            <ion-text>No Iqubs found.</ion-text>
-          </div>
         </div>
       </div>
+
+      <!-- Floating Action Button -->
+      <!-- eslint-disable-next-line vue/no-deprecated-slot-attribute -->
+      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+        <ion-fab-button @click="goToCreateIqub" class="fab-button">
+          <ion-icon :icon="addOutline"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
     </ion-content>
   </ion-page>
 </template>
@@ -98,316 +156,540 @@
 <script setup lang="ts">
 import {
   IonPage,
-  // Removed IonHeader, IonToolbar, IonTitle, IonList, IonItem
   IonContent,
-  IonLabel, // Keep Label if used elsewhere, otherwise remove
-  IonInput, // Keep Input if used elsewhere, otherwise remove
   IonButton,
-  IonSelect, // Keep Select if used elsewhere, otherwise remove
-  IonSelectOption, // Keep SelectOption if used elsewhere, otherwise remove
-  IonText,
-  IonSpinner,
-  IonIcon, // Added for icons
-  IonBadge, // Added for notification badge in top bar
-  menuController, // Import menuController
-  useIonRouter,
+  IonIcon,
+  IonBadge,
+  IonSearchbar,
+  IonChip,
+  IonLabel,
+  IonRefresher,
+  IonRefresherContent,
+  IonFab,
+  IonFabButton,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { computed, onMounted } from "vue";
-import { Iqub } from "@/types"; // Adjust the path as needed
+import { ref, computed, onMounted } from "vue";
+import { Iqub } from "@/types";
+import ProgressRing from "@/components/ProgressRing.vue";
 
 // Import Icons
-import { menuOutline, notificationsOutline } from "ionicons/icons";
-
-// Import CollectorTabBar component
-import CollectorTabBar from "@/components/CollectorTabBar.vue";
+import {
+  walletOutline,
+  addOutline,
+  folderOpenOutline,
+  alertCircleOutline,
+  refreshOutline,
+  chevronDownCircleOutline,
+  arrowBackOutline,
+  notificationsOutline,
+} from "ionicons/icons";
 
 const store = useStore();
 const router = useRouter();
-const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
 
-// --- Vuex State & Getters ---
+// State
+const searchQuery = ref("");
+const selectedFilter = ref("all");
+
+// Filter options
+const filters = [
+  { label: "All", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Pending", value: "pending" },
+  { label: "Completed", value: "completed" },
+];
+
+// Vuex State & Getters
 const myIqubs = computed<Iqub[]>(() => store.getters["iqubs/iqubs"]);
-const iqubsStatus = computed<string>(() => store.state.iqubs.status); // Assuming status is like 'idle', 'loading', 'success', 'error'
+const iqubsStatus = computed<string>(() => store.state.iqubs.status);
 const iqubsError = computed<string | null>(() => store.state.iqubs.error);
 
-// --- Data Fetching ---
+// Computed - Filtered Iqubs
+const filteredIqubs = computed(() => {
+  let iqubs = myIqubs.value;
+
+  // Apply search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    iqubs = iqubs.filter((iqub) => iqub.name.toLowerCase().includes(query));
+  }
+
+  // Apply status filter
+  if (selectedFilter.value !== "all") {
+    iqubs = iqubs.filter(
+      (iqub) => (iqub.status || "active") === selectedFilter.value
+    );
+  }
+
+  return iqubs;
+});
+
+// Methods
+const formatCurrency = (amount: string | number | undefined): string => {
+  if (!amount) return "0 ETB";
+  const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+  return (
+    new Intl.NumberFormat("en-ET", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(numAmount) + " ETB"
+  );
+};
+
+const calculateProgress = (iqub: Iqub): number => {
+  // Calculate progress based on hosted lottery
+  if (iqub.hosted_lottery) {
+    const [completed, total] = iqub.hosted_lottery.split("/").map(Number);
+    return total > 0 ? (completed / total) * 100 : 0;
+  }
+  // Fallback to members count
+  if (iqub.current_members && iqub.members_count) {
+    return (iqub.current_members / iqub.members_count) * 100;
+  }
+  return 0;
+};
+
+const getStatusColor = (status: string | undefined): string => {
+  switch (status) {
+    case "active":
+      return "success";
+    case "pending":
+      return "warning";
+    case "completed":
+      return "medium";
+    default:
+      return "success";
+  }
+};
+
+const handleRefresh = async (event: any) => {
+  await fetchIqubs();
+  event.target.complete();
+};
+
+const retryFetch = () => {
+  fetchIqubs();
+};
+
+const fetchIqubs = async () => {
+  const user = store.getters["auth/getUser"];
+  if (user.id === 21) {
+    const joined_iqubs = user.joined_iqubs;
+    await store.dispatch("iqubs/setIqubs", joined_iqubs);
+  } else {
+    await store.dispatch("iqubs/fetchMyIqubs");
+  }
+};
+
+const goToIqubDetail = (iqubId: number | string) => {
+  console.log("Navigating to Iqub detail with ID:", iqubId);
+
+  if (!iqubId || iqubId === "undefined") {
+    console.error("Invalid Iqub ID, cannot navigate:", iqubId);
+    return;
+  }
+
+  router.push(`/iqub/${iqubId}`);
+};
+
+const goToCreateIqub = () => {
+  router.push("/collector/create-iqub");
+};
+
+const goBack = () => {
+  router.push("/collector/dashboard");
+};
+
+const goToNotifications = () => {
+  router.push("/notifications");
+};
+
+// Data Fetching
 onMounted(() => {
-  // Only fetch if list is empty and not already loading or errored
   if (
     myIqubs.value.length === 0 &&
     (iqubsStatus.value === "idle" || iqubsStatus.value === "error")
   ) {
-    if (store.getters["auth/getUser"].id === 21) {
-      let joined_iqubs = store.getters["auth/getUser"].joined_iqubs;
-      store.dispatch("iqubs/setIqubs", joined_iqubs);
-    } else {
-      store.dispatch("iqubs/fetchMyIqubs");
-    }
+    fetchIqubs();
   }
 });
-
-// --- Event Handlers for Top Bar (Reused - Implement actual logic) ---
-const openMenu = () => {
-  console.log("Open menu clicked"); /* Implement menu logic */
-  menuController.open("app-menu");
-};
-const goToNotifications = () => {
-  // router.push("/notifications"); // Navigate to notifications page
-  ionRouter.push("/notifications", "forward", "none");
-};
 </script>
 
 <style scoped>
-/* Re-use color variables (ideally globally in variables.css) */
-:root {
-  --ion-color-wujo-primary: #006a52; /* Dark green */
-  --ion-color-wujo-light-grey: #f0f2f5; /* Light grey background */
-  --ion-color-wujo-grey: #dcdcdc; /* Grey for borders */
-  --ion-color-wujo-text-grey: #555; /* Text grey */
-  --ion-color-wujo-dark-grey: #333; /* Darker text for values/titles */
+/* Hero Section with Dark Green Gradient */
+.hero-section {
+  background: linear-gradient(
+    135deg,
+    var(--ion-color-dark-green, #014023) 0%,
+    #012d19 50%,
+    rgba(95, 217, 172, 0.1) 100%
+  );
+  padding: 20px 24px 80px;
+  position: relative;
+  animation: fadeInDown 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-ion-content {
-  --background: var(--ion-color-wujo-light-grey);
-  --padding-top: 0;
-  --padding-bottom: 0;
-  --padding-start: 0; /* Remove default padding */
-  --padding-end: 0;
-  display: block;
-}
-
-/* --- Top Bar Styles (Reused) --- */
-.top-bar {
+.hero-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: var(--ion-color-wujo-primary);
-  color: white;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  margin-bottom: 24px;
 }
-.menu-icon,
+
+.back-icon,
 .notification-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: white;
   cursor: pointer;
+  transition: transform 0.2s;
 }
-.page-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-  flex-grow: 1;
+
+.back-icon:hover,
+.notification-icon:hover {
+  transform: scale(1.1);
+}
+
+.hero-content {
   text-align: center;
-  margin-left: 20px;
-  margin-right: 20px;
-  white-space: nowrap;
+  color: white;
+}
+
+.hero-icon {
+  font-size: 48px;
+  color: var(--ion-color-medium-aquamarine, #5fd9ac);
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: white;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  margin: 0;
+  opacity: 0.9;
+  color: white;
+}
+
+/* Content Container */
+.content-container {
+  background: white;
+  border-radius: 32px 32px 0 0;
+  margin-top: -50px;
+  padding: 24px;
+  min-height: calc(100vh - 200px);
+  box-shadow: 0 -8px 48px rgba(1, 64, 35, 0.15);
+  animation: slideUp 0.5s cubic-bezier(0, 0, 0.2, 1);
+}
+
+/* Search Bar */
+.search-container {
+  margin-bottom: 16px;
+}
+
+.custom-searchbar {
+  --background: var(--ion-color-white-smoke, #f2f2f2);
+  --border-radius: 16px;
+  --box-shadow: none;
+  --icon-color: var(--ion-color-dark-green, #014023);
+  --placeholder-color: #6c757d;
+  padding: 0;
+}
+
+.custom-searchbar::part(native) {
+  padding-inline-start: 16px;
+  padding-inline-end: 16px;
+}
+
+/* Filter Chips */
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-chip {
+  --background: var(--ion-color-white-smoke, #f2f2f2);
+  --color: var(--ion-color-dark-green, #014023);
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.filter-chip.active {
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --color: var(--ion-color-dark-green, #014023);
+  transform: scale(1.05);
+}
+
+/* Iqubs Grid */
+.iqubs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 80px;
+}
+
+/* Premium Iqub Card */
+.iqub-card {
+  background: var(--ion-color-dark-green, #014023);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(1, 64, 35, 0.2);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.5s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.iqub-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 16px rgba(1, 64, 35, 0.3);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.iqub-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.notification-container {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  font-size: 10px;
-  padding: 3px 5px;
-  border-radius: 10px;
-  --background: var(--ion-color-danger, #eb445a);
-  color: white;
-  z-index: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-/* --- Collector Tab Bar Styles (Reference) --- */
-/* Styles defined in CollectorTabBar.vue. Add margin below it here. */
-collector-tab-bar {
-  display: block;
-  margin-bottom: 20px; /* Space below the tab bar */
-}
-
-/* --- Action Buttons Row --- */
-.action-buttons-row {
-  display: flex;
-  justify-content: space-between; /* Align buttons to the left */
-  gap: 8px; /* Space between buttons */
-  padding: 0 20px 15px; /* Padding: top 0, horiz 20px, bottom 15px */
-  background: white; /* White background behind buttons */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow below the row */
-  /* Optional: Add border-bottom if shadow is not enough separation */
-  /* border-bottom: 1px solid #eee; */
-  /* Allow wrapping if screen is too narrow */
-  flex-wrap: wrap;
-  height: 40px;
-}
-
-.action-button {
-  --background: white; /* White background */
-  --color: var(--ion-color-wujo-text-grey); /* Grey text */
-  --border-color: var(--ion-color-wujo-grey); /* Grey border */
-  --border-radius: 8px; /* Rounded corners */
-  --border-width: 1px;
-  font-size: 12px; /* Smaller font size */
-  font-weight: normal;
+.status-badge {
   text-transform: capitalize;
-  height: 20px; /* Smaller button height */
-  /* Add some horizontal padding if default is too little */
-  --padding-start: 12px;
-  --padding-end: 12px;
-  margin-top: 8px;
-}
-/* Style when button is pressed */
-.action-button ion-activated {
-  --background: var(
-    --ion-color-wujo-light-grey
-  ); /* Light grey background on press */
+  font-size: 11px;
+  padding: 4px 8px;
+  margin-left: 8px;
 }
 
-/* --- Main Content Area for List --- */
-.list-content {
-  padding: 0 20px; /* Add horizontal padding */
-  padding-bottom: 40px; /* Padding at the very bottom */
+.card-progress {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
 }
 
-.page-heading {
-  display: block;
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey); /* Darker color for heading */
-  margin-bottom: 15px; /* Space below the heading */
-  text-align: center; /* Center the heading */
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* --- Iqubs List Container --- */
-.iqubs-list-container {
-  background: white; /* White background for the list */
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-  overflow: hidden; /* Hide overflow if content is wider than container */
-  margin-top: 10px; /* Space above the list container */
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* --- List Header --- */
-.list-header {
-  display: flex; /* Arrange columns horizontally */
-  background: var(--ion-color-wujo-primary); /* Dark green background */
-  color: white; /* White text */
-  padding: 12px 15px; /* Vertical and horizontal padding */
-  font-size: 13px; /* Adjust font size */
-  font-weight: bold;
-  border-top-left-radius: 10px; /* Match container radius */
-  border-top-right-radius: 10px;
+.stat-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.header-item {
-  flex: 1; /* Distribute space */
-  /* Set widths based on design */
-  /* Example: Adjust flex-basis or flex-grow for column widths */
-  /* flex-basis: 30%; */ /* Give Iqub Name more space */
-  /* &:nth-child(2) { flex-basis: 40%; } */ /* Give amount more space */
-  /* &:nth-child(3) { flex-basis: 30%; } */ /* Give hosted less space */
-
-  /* Simple flex distribution, may need refinement */
-  min-width: 0; /* Allow shrinking */
-  word-break: break-word; /* Allow text to break */
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
 }
 
-.header-item:nth-child(1) {
-  flex: 2;
-} /* Iqub Name takes more space */
-.header-item:nth-child(2) {
-  flex: 2;
-} /* Amount takes more space */
-.header-item:nth-child(3) {
-  flex: 1;
-} /* Hosted Lottery takes less space */
-
-/* --- List Items --- */
-.list-item {
-  display: flex; /* Arrange columns horizontally */
-  padding: 12px 15px; /* Match header padding */
-  background: white; /* White background */
-  border-bottom: 1px solid #eee; /* Subtle separator line */
-  cursor: pointer; /* Indicate clickable */
-  transition: background-color 0.2s ease-in-out; /* Smooth hover/active effect */
+/* Skeleton Loaders */
+.skeleton-card {
+  background: var(--ion-color-dark-green, #014023);
+  border-radius: 20px;
+  padding: 24px;
+  height: 280px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Remove border from the last item */
-.list-item:last-child {
-  border-bottom: none;
-  border-bottom-left-radius: 10px; /* Match container radius */
-  border-bottom-right-radius: 10px;
+.skeleton-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
 }
 
-/* Style on hover/active */
-.list-item:hover,
-.list-item:active {
-  background-color: var(
-    --ion-color-wujo-light-grey
-  ); /* Light grey background on hover/active */
+.skeleton-header,
+.skeleton-ring,
+.skeleton-text {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
-.list-item-cell {
-  flex: 1; /* Distribute space */
-  /* Match width distribution of header items */
-  min-width: 0; /* Allow shrinking */
-  word-break: break-word; /* Allow text to break */
-  font-size: 14px; /* Adjust font size */
-  color: var(--ion-color-wujo-dark-grey); /* Darker text color */
-  display: flex; /* Use flex to align content */
-  align-items: center; /* Vertically center text */
+.skeleton-header {
+  height: 24px;
+  width: 70%;
 }
 
-/* Match width distribution of header items */
-.list-item-cell:nth-child(1) {
-  flex: 2;
-}
-.list-item-cell:nth-child(2) {
-  flex: 2;
-}
-.list-item-cell:nth-child(3) {
-  flex: 1;
+.skeleton-ring {
+  height: 80px;
+  width: 80px;
+  border-radius: 50%;
+  margin: 20px auto;
 }
 
-/* Right-align text in specific columns */
-.right-align {
-  text-align: right;
-  justify-content: flex-end; /* Align content to the right in flexbox */
+.skeleton-text {
+  height: 16px;
+  width: 100%;
 }
 
-/* --- Loading & Error States --- */
-.loading-indicator,
-.error-message,
+.skeleton-text.short {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Empty State */
 .empty-state {
   display: flex;
-  flex-direction: column; /* Stack spinner/text vertically */
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 200px; /* Give them a defined height to center within */
+  justify-content: center;
+  padding: 60px 24px;
   text-align: center;
-  /* Position relative to the list container if needed, or just centered in form-content */
-  /* Assumed centered within the list-content padding area */
 }
 
-.error-message p,
-.empty-state ion-text {
-  color: var(--ion-color-wujo-text-grey); /* Use grey text color */
-  margin-top: 10px; /* Space above text */
+.empty-icon {
+  font-size: 80px;
+  color: var(--ion-color-medium-aquamarine, #5fd9ac);
+  margin-bottom: 24px;
+  opacity: 0.5;
 }
 
-.loading-indicator ion-spinner {
-  width: 30px; /* Adjust spinner size */
-  height: 30px;
-  --color: var(--ion-color-wujo-primary); /* Green spinner color */
+.empty-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ion-color-dark-green, #014023);
+  margin: 0 0 12px 0;
+}
+
+.empty-message {
+  font-size: 16px;
+  color: #6c757d;
+  margin: 0 0 32px 0;
+  max-width: 300px;
+}
+
+.empty-cta {
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --color: var(--ion-color-dark-green, #014023);
+  --border-radius: 16px;
+  height: 56px;
+  font-weight: 700;
+  --box-shadow: 0 8px 24px rgba(95, 217, 172, 0.35);
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 80px;
+  color: var(--ion-color-danger, #dc3545);
+  margin-bottom: 24px;
+  opacity: 0.7;
+}
+
+.error-message {
+  font-size: 16px;
+  color: #6c757d;
+  margin: 0 0 32px 0;
+  max-width: 300px;
+}
+
+.retry-button {
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --color: var(--ion-color-dark-green, #014023);
+  --border-radius: 16px;
+  height: 48px;
+  font-weight: 600;
+}
+
+/* Floating Action Button */
+.fab-button {
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --color: var(--ion-color-dark-green, #014023);
+  --box-shadow: 0 8px 24px rgba(95, 217, 172, 0.35);
+}
+
+.fab-button:active {
+  transform: scale(0.95);
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .iqubs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
 }
 </style>

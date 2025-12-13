@@ -1,70 +1,101 @@
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <!-- Custom Top Bar -->
-      <div class="top-bar">
-        <ion-icon
-          :icon="menuOutline"
-          class="menu-icon"
-          @click="openMenu"
-        ></ion-icon>
-        <ion-text class="page-title">HI Iquber</ion-text>
-        <div class="notification-container">
+      <!-- Premium Hero Section -->
+      <div class="hero-section">
+        <div class="hero-header">
+          <ion-icon
+            :icon="arrowBackOutline"
+            class="back-icon"
+            @click="goToDashboard"
+          ></ion-icon>
+          <h1 class="hero-title">My IqubBook</h1>
           <ion-icon
             :icon="notificationsOutline"
             class="notification-icon"
             @click="goToNotifications"
           ></ion-icon>
-          <ion-badge color="danger" class="notification-badge">{{
-            notificationCount
-          }}</ion-badge>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-value">{{ formatCurrency(totalSavings) }}</span>
+            <span class="stat-label">Total Savings</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-value">{{ activeIqubsCount }}</span>
+            <span class="stat-label">Active Iqubs</span>
+          </div>
         </div>
       </div>
 
       <member-tab-bar></member-tab-bar>
 
+      <!-- Pull to Refresh -->
+      <template #fixed>
+        <ion-refresher @ionRefresh="handleRefresh($event)">
+          <ion-refresher-content></ion-refresher-content>
+        </ion-refresher>
+      </template>
+
       <div class="page-content">
-        <!-- Welcome Text -->
-        <div class="welcome-section">
-          <p class="welcome-text">
-            Welcome to your Digital Iqub Book where you can easily access and
-            track your progress and find an exciting world of lottery events
-          </p>
-        </div>
-
-        <!-- Iquber IqubBook Section -->
-        <div class="iqub-book-section">
-          <!-- Header Banner -->
-          <div class="iqub-book-header">
-            <ion-text class="iqub-book-title">Iquber IqubBook</ion-text>
-          </div>
-
-          <!-- Iqub Cards -->
-          <div v-if="iqubs.length" class="iqub-cards-container">
-            <div v-for="iqub in iqubs" :key="iqub.id" class="iqub-card">
-              <ion-text class="card-title">{{
-                iqub.name || `Iqub #${iqub.id}`
-              }}</ion-text>
-              <ion-text class="card-amount">
-                Saving Amount: {{ formatAmount(iqub.saving_amount) }}
-              </ion-text>
-              <ion-text class="card-saved">
-                Joined Members:
-                {{ iqub.joined_members ?? iqub.members_count ?? "N/A" }}
-              </ion-text>
-              <ion-text class="card-status" :class="statusClass(iqub.status)">
-                Status {{ iqub.status ?? "N/A" }}
-              </ion-text>
+        <!-- Loading State -->
+        <div v-if="isLoading" class="iqub-cards-grid">
+          <div v-for="i in 3" :key="i" class="skeleton-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-body">
+              <div class="skeleton-ring"></div>
+              <div class="skeleton-info">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+              </div>
             </div>
           </div>
-          <ion-text v-else class="empty-state">
-            You have not joined any Iqubs yet.
-          </ion-text>
         </div>
 
-        <div class="response-section">
-          <ion-text class="response-title">Latest Server Response</ion-text>
-          <pre class="response-pre">{{ formattedResponse }}</pre>
+        <!-- Iqub Cards Grid -->
+        <div v-else-if="joinedIqubs.length" class="iqub-cards-grid">
+          <member-iqub-card
+            v-for="(iqub, index) in joinedIqubs"
+            :key="iqub.id"
+            :iqub="iqub"
+            :style="{ animationDelay: `${index * 100}ms` }"
+            class="card-entrance"
+          />
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!isLoading && !hasError" class="empty-state">
+          <ion-icon :icon="bookOutline" class="empty-icon"></ion-icon>
+          <h2 class="empty-title">Start your savings journey!</h2>
+          <p class="empty-message">
+            You haven't joined any Iqubs yet. Discover amazing savings
+            opportunities and start building your financial future today.
+          </p>
+          <ion-button class="discover-btn" @click="goToDiscover">
+            <template #start>
+              <ion-icon :icon="searchOutline"></ion-icon>
+            </template>
+            Discover Iqubs
+          </ion-button>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="hasError" class="error-state">
+          <ion-icon :icon="alertCircleOutline" class="error-icon"></ion-icon>
+          <h2 class="error-title">Oops! Something went wrong</h2>
+          <p class="error-message">{{ errorMessage }}</p>
+          <ion-button class="retry-btn" @click="retryFetch">
+            <template #start>
+              <ion-icon :icon="refreshOutline"></ion-icon>
+            </template>
+            Try Again
+          </ion-button>
         </div>
       </div>
     </ion-content>
@@ -72,253 +103,430 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { IonPage, IonContent, IonIcon, IonText, IonBadge } from "@ionic/vue";
-import { menuOutline, notificationsOutline } from "ionicons/icons";
+import { computed, onMounted } from "vue";
+import {
+  IonPage,
+  IonContent,
+  IonIcon,
+  IonButton,
+  IonRefresher,
+  IonRefresherContent,
+  toastController,
+} from "@ionic/vue";
+import {
+  arrowBackOutline,
+  notificationsOutline,
+  bookOutline,
+  searchOutline,
+  alertCircleOutline,
+  refreshOutline,
+} from "ionicons/icons";
 import { useStore } from "vuex";
+import { useRouter } from "vue-router";
 import MemberTabBar from "@/components/MemberTabBar.vue";
+import MemberIqubCard from "@/components/MemberIqubCard.vue";
+import type { Iqub } from "@/types";
 
 const store = useStore();
-const notificationCount = ref(3);
+const router = useRouter();
 
-const iqubs = computed(() => store.getters["iqubs/iqubs"] || []);
-const fetchStatus = computed(() => store.getters["iqubs/status"]);
-const fetchError = computed(() => store.getters["iqubs/error"]);
-
-const responsePayload = computed(() => ({
-  status: fetchStatus.value,
-  error: fetchError.value,
-  data: iqubs.value,
-}));
-
-const formattedResponse = computed(() =>
-  JSON.stringify(responsePayload.value, null, 2)
+// Computed properties from member store
+const joinedIqubs = computed(() => store.getters["member/joinedIqubs"] || []);
+const joinedIqubsStatus = computed(
+  () => store.getters["member/joinedIqubsStatus"]
+);
+const errorMessage = computed(
+  () =>
+    store.getters["member/error"] ||
+    "Failed to load your Iqubs. Please try again."
 );
 
-const statusClass = (status?: string) => {
-  if (!status) {
-    return "status-normal";
-  }
-  const normalized = status.toLowerCase();
-  if (normalized.includes("complete") || normalized.includes("success")) {
-    return "status-green";
-  }
-  if (normalized.includes("pending") || normalized.includes("progress")) {
-    return "status-normal";
-  }
-  return "status-red";
-};
+const isLoading = computed(() => joinedIqubsStatus.value === "loading");
+const hasError = computed(() => joinedIqubsStatus.value === "error");
 
-const formatAmount = (value?: string | number) => {
-  if (value === null || value === undefined) {
-    return "N/A";
-  }
-  return typeof value === "number" ? `${value} ETB` : value;
-};
-
-onMounted(() => {
-  store.dispatch("iqubs/fetchMemberIqubs");
+// Calculate total savings from joined Iqubs
+const totalSavings = computed(() => {
+  return joinedIqubs.value.reduce((total: number, iqub: Iqub) => {
+    const collected =
+      typeof iqub.total_collected === "string"
+        ? parseFloat(iqub.total_collected)
+        : iqub.total_collected || 0;
+    return total + collected;
+  }, 0);
 });
 
-const openMenu = () => {
-  console.log("Open menu clicked");
+// Count active Iqubs
+const activeIqubsCount = computed(() => {
+  return joinedIqubs.value.filter(
+    (iqub: Iqub) => iqub.status?.toLowerCase() === "active"
+  ).length;
+});
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+const fetchJoinedIqubs = async () => {
+  await store.dispatch("member/fetchJoinedIqubs");
+};
+
+const retryFetch = () => {
+  fetchJoinedIqubs();
+};
+
+const handleRefresh = async (event: CustomEvent) => {
+  try {
+    await fetchJoinedIqubs();
+    const toast = await toastController.create({
+      message: "Iqubs refreshed successfully!",
+      duration: 2000,
+      color: "success",
+      position: "top",
+    });
+    await toast.present();
+  } catch (error) {
+    const toast = await toastController.create({
+      message: "Failed to refresh. Please try again.",
+      duration: 2000,
+      color: "danger",
+      position: "top",
+    });
+    await toast.present();
+  } finally {
+    (event.target as any)?.complete();
+  }
+};
+
+const goToDashboard = () => {
+  router.push("/member/dashboard");
 };
 
 const goToNotifications = () => {
-  console.log("Notifications icon clicked");
+  router.push("/member/notifications");
 };
+
+const goToDiscover = () => {
+  router.push("/member/discover");
+};
+
+onMounted(() => {
+  fetchJoinedIqubs();
+});
 </script>
 
 <style scoped>
-:root {
-  --ion-color-wujo-primary: #006a52;
-  --ion-color-wujo-light-grey: #f0f2f5;
-}
-
 ion-content {
-  --background: white;
+  --background: #f2f2f2;
   --padding-top: 0;
   --padding-bottom: 0;
   --padding-start: 0;
   --padding-end: 0;
-  display: block;
 }
 
-.top-bar {
+/* Premium Hero Section */
+.hero-section {
+  background: linear-gradient(
+    135deg,
+    #014023 0%,
+    #012d19 50%,
+    rgba(95, 217, 172, 0.1) 100%
+  );
+  padding: 24px;
+  border-radius: 0 0 24px 24px;
+  animation: fadeInDown 0.5s ease-out;
+}
+
+.hero-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: var(--ion-color-wujo-primary);
-  color: white;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  margin-bottom: 24px;
 }
 
-.menu-icon,
+.back-icon,
 .notification-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: white;
   cursor: pointer;
+  transition: transform var(--wujo-transition-fast) var(--wujo-timing-function);
 }
 
-.page-title {
-  font-size: 18px;
-  font-weight: bold;
+.back-icon:active,
+.notification-icon:active {
+  transform: scale(0.95);
+}
+
+.hero-title {
+  font-size: var(--wujo-font-size-title);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-tight);
   color: white;
-  flex-grow: 1;
+  margin: 0;
+  flex: 1;
   text-align: center;
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
-.notification-container {
-  position: relative;
-  width: 24px;
-  height: 24px;
+.hero-stats {
   display: flex;
+  justify-content: space-around;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  gap: 16px;
+  margin-top: 16px;
 }
 
-.notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  font-size: 10px;
-  padding: 3px 5px;
-  border-radius: 10px;
-  --background: var(--ion-color-danger, #eb445a);
-  color: white;
-  z-index: 1;
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
 }
 
+.stat-value {
+  font-size: var(--wujo-font-size-section);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-tight);
+  color: #5fd9ac;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Page Content */
 .page-content {
   padding: 20px;
+  min-height: calc(100vh - 200px);
+}
+
+/* Iqub Cards Grid */
+.iqub-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-entrance {
+  animation: slideUp 0.3s ease-out backwards;
+}
+
+/* Loading Skeleton */
+.skeleton-card {
   background: white;
-}
-
-/* Welcome Section */
-.welcome-section {
-  text-align: center;
-  margin-bottom: 30px;
-  padding-top: 20px;
-}
-
-.welcome-text {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* Iqub Book Section */
-.iqub-book-section {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.iqub-book-header {
-  background: var(--ion-color-wujo-primary);
-  padding: 15px 20px;
-  border-radius: 8px 8px 0 0;
-  margin-bottom: 0;
-  text-align: center;
-}
-
-.iqub-book-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-}
-
-/* Iqub Cards Container */
-.iqub-cards-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-top: 0;
-  text-align: center;
-}
-
-.iqub-card {
-  background: #f0f2f5; /* Light grey background */
+  border-radius: 20px;
   padding: 20px;
-  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 12px 0;
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 20px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 24px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+.skeleton-body {
+  display: flex;
+  gap: 20px;
+}
+
+.skeleton-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  gap: 12px;
+  justify-content: center;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
 }
 
-.card-amount {
-  font-size: 14px;
-  color: #555;
+.skeleton-line:nth-child(1) {
+  width: 90%;
 }
 
-.card-saved {
-  font-size: 14px;
-  color: #555;
+.skeleton-line:nth-child(2) {
+  width: 70%;
 }
 
-.card-status {
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 5px;
+.skeleton-line:nth-child(3) {
+  width: 80%;
 }
 
-/* Status Colors */
-.status-normal {
-  color: #333; /* Dark/black color */
-}
-
-.status-green {
-  color: #006a52; /* Green color */
-}
-
-.status-red {
-  color: #eb445a; /* Red color */
-}
-
+/* Empty State */
 .empty-state {
-  display: block;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #555;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  min-height: 400px;
 }
 
-.response-section {
-  margin-top: 30px;
-  padding: 20px;
-  background: #f8f9fb;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+.empty-icon {
+  font-size: 120px;
+  color: #5fd9ac;
+  margin-bottom: 24px;
+  opacity: 0.6;
 }
 
-.response-title {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
-  display: block;
-  margin-bottom: 10px;
+.empty-title {
+  font-size: var(--wujo-font-size-section);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-normal);
+  color: #014023;
+  margin: 0 0 12px 0;
 }
 
-.response-pre {
-  background: #1e1e1e;
-  color: #e8e8e8;
-  padding: 15px;
-  border-radius: 8px;
-  font-size: 12px;
-  overflow-x: auto;
-  line-height: 1.4;
+.empty-message {
+  font-size: var(--wujo-font-size-body);
+  color: #666;
+  line-height: var(--wujo-line-height-relaxed);
+  margin: 0 0 32px 0;
+  max-width: 400px;
+}
+
+.discover-btn {
+  --background: #5fd9ac;
+  --color: #014023;
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(95, 217, 172, 0.35);
+  height: var(--wujo-button-height);
+  font-weight: var(--wujo-font-weight-semibold);
+  font-size: var(--wujo-font-size-body);
+  text-transform: none;
+  min-width: 200px;
+}
+
+.discover-btn:active {
+  transform: scale(0.98);
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  min-height: 400px;
+}
+
+.error-icon {
+  font-size: 120px;
+  color: #eb445a;
+  margin-bottom: 24px;
+  opacity: 0.6;
+}
+
+.error-title {
+  font-size: var(--wujo-font-size-section);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-normal);
+  color: #014023;
+  margin: 0 0 12px 0;
+}
+
+.error-message {
+  font-size: var(--wujo-font-size-body);
+  color: #666;
+  line-height: var(--wujo-line-height-relaxed);
+  margin: 0 0 32px 0;
+  max-width: 400px;
+}
+
+.retry-btn {
+  --background: #014023;
+  --color: white;
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(1, 64, 35, 0.2);
+  height: var(--wujo-button-height);
+  font-weight: var(--wujo-font-weight-semibold);
+  font-size: var(--wujo-font-size-body);
+  text-transform: none;
+  min-width: 200px;
+}
+
+.retry-btn:active {
+  transform: scale(0.98);
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 </style>

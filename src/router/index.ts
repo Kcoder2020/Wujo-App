@@ -87,7 +87,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ["collector"] },
   },
   {
-    path: "/collector/iqub-book", // <--- Matches goTo('/collector/iqub-book')
+    path: "/collector/iqub/:iqubId/member/:memberId", // <--- New route with parameters
     name: "collector-iqub-book", // Use a unique name
     component: IqubBookPage, // This component is rendered fully
     meta: { requiresAuth: true, roles: ["collector"] },
@@ -140,13 +140,6 @@ const routes: Array<RouteRecordRaw> = [
     name: "joined-iqubs", // Legacy route, can be kept for backward compatibility
     component: JoinedIqubsPage,
     meta: { requiresAuth: true, roles: ["member"] },
-  },
-  {
-    path: "/iqub/:id",
-    name: "iqub-detail",
-    component: IqubDetailPage,
-    meta: { requiresAuth: true, roles: ["collector"] },
-    props: true,
   },
   // --- Standalone Routes (rendered by the root <ion-router-outlet>) ---
   {

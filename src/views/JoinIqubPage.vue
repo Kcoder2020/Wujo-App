@@ -127,8 +127,8 @@ const joinIqubCircle = async () => {
 
 <style scoped>
 :root {
-  --ion-color-wujo-primary: #006a52;
-  --ion-color-wujo-light-grey: #f0f2f5;
+  --ion-color-wujo-primary: #014023;
+  --ion-color-wujo-light-grey: #f2f2f2;
 }
 
 ion-content {

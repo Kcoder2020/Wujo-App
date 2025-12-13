@@ -23,6 +23,10 @@ interface IqubState {
   selectedPaymentRoundDetails: PaymentRound | null; // Details for a specific round
   paymentRoundDetailsStatus: FetchStatus; // Status for fetching single round details
   paymentRoundDetailsError: string | null;
+  // Dashboard data
+  dashboardData: any | null;
+  dashboardStatus: FetchStatus;
+  dashboardError: string | null;
 }
 
 const state: IqubState = {
@@ -37,6 +41,9 @@ const state: IqubState = {
   selectedPaymentRoundDetails: null,
   paymentRoundDetailsStatus: "idle",
   paymentRoundDetailsError: null,
+  dashboardData: null,
+  dashboardStatus: "idle",
+  dashboardError: null,
 };
 
 const mutations = {
@@ -141,10 +148,20 @@ const mutations = {
     }
   },
   // You might add mutations to update the check status of a specific payment round locally
-  // updatePaymentRoundCheck(state: IqubState, { iqubId, roundNumber, isChecked }: { iqubId: number, roundNumber: number, isChecked: boolean }) {
+  // updatePaymentRoundCheck(state: IqubState, { iqubId, roundNumber, isChecked }: { iqubId, number, roundNumber: number, isChecked: boolean }) {
   //    const round = state.iqubPaymentRounds.find(r => r.round_number === roundNumber);
   //    if (round) round.is_checked = isChecked;
   // }
+  // Dashboard mutations
+  setDashboardData(state: IqubState, data: any) {
+    state.dashboardData = data;
+  },
+  setDashboardStatus(state: IqubState, status: FetchStatus) {
+    state.dashboardStatus = status;
+  },
+  setDashboardError(state: IqubState, error: string | null) {
+    state.dashboardError = error;
+  },
 };
 
 const actions = {
@@ -190,13 +207,12 @@ const actions = {
   // or if the list fetch doesn't provide everything the detail page needs eventually.
   // However, the primary way IqubDetailPage will get data is via the getter finding it in the list.
   async fetchIqubDetails(
-    { commit }: { commit: Commit },
+    { commit, state }: { commit: Commit; state: IqubState },
     iqubId: string | number
   ) {
-    // This action *could* also find in the state first and only fetch if not found or stale
-    // For now, let's assume it always fetches the single latest version
+    // This action fetches the latest version and updates both selectedIqub and the iqubs array
     commit("setSelectedIqub", null); // Clear previous selection
-    commit("setStatus", "loading"); // This might conflict if list is also loading
+    commit("setStatus", "loading");
     commit("setError", null);
     try {
       const token = localStorage.getItem("token");
@@ -205,9 +221,27 @@ const actions = {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log(`Iqub ${iqubId} details fetched:`, response.data);
-      if (response.data) {
-        commit("setSelectedIqub", response.data);
-        commit("setStatus", "success"); // Update status
+      if (response.data && response.data.data) {
+        const fetchedIqub = response.data.data;
+
+        // Update selectedIqub
+        commit("setSelectedIqub", fetchedIqub);
+
+        // Also update the iqub in the iqubs array if it exists
+        const iqubIndex = state.iqubs.findIndex((iqub) => iqub.id == iqubId);
+        if (iqubIndex !== -1) {
+          // Update existing iqub in the array
+          const updatedIqubs = [...state.iqubs];
+          updatedIqubs[iqubIndex] = fetchedIqub;
+          commit("setIqubs", updatedIqubs);
+          console.log(`Updated Iqub ${iqubId} in iqubs array`);
+        } else {
+          // Iqub not in array, add it
+          commit("setIqubs", [...state.iqubs, fetchedIqub]);
+          console.log(`Added Iqub ${iqubId} to iqubs array`);
+        }
+
+        commit("setStatus", "success");
       } else {
         console.error(
           "Unexpected API response structure for single iqub:",
@@ -223,8 +257,8 @@ const actions = {
         error.message ||
         `Failed to fetch iqub ${iqubId} details.`;
       commit("setError", errorMessage);
-      commit("setStatus", "error"); // Update status on error
-      throw error; // Re-throw so component can catch
+      commit("setStatus", "error");
+      throw error;
     }
   },
 
@@ -613,9 +647,10 @@ const getters = {
   // --- ADD THIS GETTER FACTORY ---
   getIqubById:
     (state: IqubState) =>
-    (id: number): Iqub | undefined => {
+    (id: number | string): Iqub | undefined => {
       // Finds the iqub in the state.iqubs array by its ID
-      return state.iqubs.find((iqub) => iqub.id === id);
+      // Handle both string and number IDs for MongoDB ObjectId compatibility
+      return state.iqubs.find((iqub) => iqub.id == id); // Use == for loose equality
     },
   // Optional: Getters for specific action status/errors if you add them to state
   // addMemberStatus: (state: IqubState) => state.addMemberStatus,

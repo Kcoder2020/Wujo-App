@@ -408,8 +408,8 @@ const isVerifiedOrRejected = (roundDetails: PaymentRound | null): boolean => {
 <style scoped>
 /* Re-use color variables */
 :root {
-  --ion-color-wujo-primary: #006a52; /* Dark green */
-  --ion-color-wujo-light-grey: #f0f2f5; /* Light grey background */
+  --ion-color-wujo-primary: #014023; /* Wujo Dark Green */
+  --ion-color-wujo-light-grey: #f2f2f2; /* Wujo White Smoke */
   --ion-color-wujo-grey: #dcdcdc; /* Grey for borders */
   --ion-color-wujo-text-grey: #555; /* Text grey */
   --ion-color-wujo-dark-grey: #333; /* Darker text for values/titles */

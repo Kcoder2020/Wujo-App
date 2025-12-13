@@ -184,11 +184,11 @@ const getStarted = () => {
 <style scoped>
 /* Define CSS variables for consistent colors */
 :root {
-  /* Adjusted primary color slightly based on visual match to logo/title */
-  --ion-color-wujo-primary: #006a52;
-  --ion-color-wujo-primary-rgb: 0, 106, 82;
-  /* Adjusted light grey background slightly based on visual match */
-  --ion-color-wujo-light-grey: #f0f2f5;
+  /* Wujo Brand Primary Color */
+  --ion-color-wujo-primary: #014023;
+  --ion-color-wujo-primary-rgb: 1, 64, 35;
+  /* Wujo White Smoke Background */
+  --ion-color-wujo-light-grey: #f2f2f2;
 }
 
 ion-content {
@@ -279,13 +279,13 @@ swiper-slide {
 
 /* Swiper Pagination Styling */
 /* Target the pagination dots container */
-swiper::v-deep .swiper-pagination {
+swiper :deep(.swiper-pagination) {
   /* Adjust vertical position to be below the slide content */
   bottom: 40px !important; /* Position from the bottom of the swiper container */
   text-align: center; /* Ensure dots are centered */
 }
 
-swiper::v-deep .swiper-pagination-bullet {
+swiper :deep(.swiper-pagination-bullet) {
   /* Change inactive dot color */
   background: #ccc; /* A lighter grey for inactive */
   opacity: 1; /* Ensure inactive dots are clearly visible */
@@ -294,7 +294,7 @@ swiper::v-deep .swiper-pagination-bullet {
   margin: 0 5px; /* Adjust spacing between dots */
 }
 
-swiper::v-deep .swiper-pagination-bullet-active {
+swiper :deep(.swiper-pagination-bullet-active) {
   /* Change active dot color to green */
   --background: var(
     --ion-color-wujo-primary

@@ -1,651 +1,686 @@
 <template>
   <ion-page>
-    <!-- Removed ion-header, using custom top bar within ion-content -->
     <ion-content :fullscreen="true">
-      <!-- Custom Top Bar (Menu, Title, Notification) -->
-      <div class="top-bar">
-        <!-- Menu Icon -->
-        <ion-icon
-          :icon="menuOutline"
-          class="menu-icon"
-          @click="openMenu"
-        ></ion-icon>
-
-        <!-- Page Title -->
-        <ion-text class="page-title">HI Iquber</ion-text>
-
-        <!-- Notification Icon and Badge -->
-        <div class="notification-container">
+      <!-- Premium Hero Section -->
+      <div class="hero-section">
+        <div class="hero-header">
+          <ion-icon
+            :icon="menuOutline"
+            class="hero-icon"
+            @click="openMenu"
+          ></ion-icon>
           <ion-icon
             :icon="notificationsOutline"
-            class="notification-icon"
+            class="hero-icon"
             @click="goToNotifications"
           ></ion-icon>
-          <ion-badge color="danger" class="notification-badge">{{
-            notificationCount
-          }}</ion-badge>
         </div>
+        <h1 class="hero-greeting">Welcome Back, {{ userName }}!</h1>
       </div>
 
       <!-- Member Tab Bar -->
       <member-tab-bar></member-tab-bar>
 
-      <!-- Main Dashboard Content Area -->
+      <!-- Main Dashboard Content -->
       <div class="dashboard-content">
-        <!-- Welcome Section -->
-        <div class="welcome-section">
-          <h1 class="welcome-text">Welcome to your Iqub Dashboard!</h1>
-          <ion-button
-            class="join-iqub-button"
-            @click="goToJoinIqub"
-            fill="solid"
+        <!-- Summary Cards Section -->
+        <div class="summary-cards">
+          <!-- Total Savings Card -->
+          <div
+            class="summary-card"
+            @click="goToMyIqubs"
+            style="animation-delay: 0ms"
           >
-            Join Iqub
+            <div class="card-progress">
+              <ProgressRing :percentage="savingsPercentage" :size="80" />
+            </div>
+            <div class="card-info">
+              <h3 class="card-title">Total Savings</h3>
+              <p class="card-value">{{ formatCurrency(totalSavings) }}</p>
+              <p class="card-trend">{{ savingsPercentage }}% Complete</p>
+            </div>
+          </div>
+
+          <!-- Active Iqubs Card -->
+          <div
+            class="summary-card"
+            @click="goToMyIqubs"
+            style="animation-delay: 100ms"
+          >
+            <div class="card-icon-wrapper">
+              <ion-icon
+                :icon="peopleOutline"
+                class="card-icon-large"
+              ></ion-icon>
+            </div>
+            <div class="card-info">
+              <h3 class="card-title">Active Iqubs</h3>
+              <p class="card-value">{{ activeIqubs }}</p>
+              <p class="card-trend">+2 this month</p>
+            </div>
+          </div>
+
+          <!-- Lottery Position Card -->
+          <div class="summary-card" style="animation-delay: 200ms">
+            <div class="card-icon-wrapper">
+              <ion-icon
+                :icon="trophyOutline"
+                class="card-icon-large"
+              ></ion-icon>
+            </div>
+            <div class="card-info">
+              <h3 class="card-title">Lottery Position</h3>
+              <p class="card-value">#{{ lotteryPosition }}</p>
+              <p class="card-trend">
+                <ion-icon
+                  :icon="calendarOutline"
+                  class="inline-icon"
+                ></ion-icon>
+                Next: {{ nextLotteryDate || "TBD" }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Completed Iqubs Card -->
+          <div class="summary-card" style="animation-delay: 300ms">
+            <div class="card-icon-wrapper">
+              <ion-icon :icon="cashOutline" class="card-icon-large"></ion-icon>
+            </div>
+            <div class="card-info">
+              <h3 class="card-title">Completed Iqubs</h3>
+              <p class="card-value">{{ completedIqubs }}</p>
+              <p class="card-trend">Well done!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Feed -->
+        <div class="activity-section">
+          <h2 class="section-title">Recent Activity</h2>
+          <div
+            v-if="isLoading && recentActivities.length === 0"
+            class="activity-skeleton"
+          >
+            <div class="skeleton-item" v-for="i in 3" :key="i"></div>
+          </div>
+          <div v-else-if="recentActivities.length > 0" class="activity-feed">
+            <div
+              v-for="activity in recentActivities"
+              :key="activity.id"
+              class="activity-item"
+            >
+              <div class="activity-icon-wrapper">
+                <ion-icon
+                  :icon="getActivityIcon(activity.type)"
+                  class="activity-icon"
+                ></ion-icon>
+              </div>
+              <div class="activity-content">
+                <p class="activity-title">{{ activity.title }}</p>
+                <p class="activity-description">{{ activity.description }}</p>
+              </div>
+              <div class="activity-time">
+                <span>{{ formatRelativeTime(activity.timestamp) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <ion-icon :icon="cashOutline" class="empty-icon"></ion-icon>
+            <p class="empty-text">No recent activity yet</p>
+            <p class="empty-subtext">Start your savings journey today!</p>
+          </div>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="quick-actions">
+          <ion-button class="action-btn" @click="goToDiscover">
+            <template #start>
+              <ion-icon :icon="searchOutline"></ion-icon>
+            </template>
+            Discover Iqubs
           </ion-button>
-          <p class="info-text">
-            Here you can view and manage your Iqub invitations using a unique
-            code
-          </p>
-        </div>
-
-        <!-- Summary Cards Grid -->
-        <div class="summary-cards-grid">
-          <!-- Total Iqub Joined Card -->
-          <div class="summary-card">
-            <ion-icon :icon="statsChartOutline" class="card-icon"></ion-icon>
-            <ion-text class="card-title">Total Iqub joined</ion-text>
-            <ion-text class="card-value">{{ totalIqubJoined }}</ion-text>
-          </div>
-
-          <!-- Total Finished Iqub Card -->
-          <div class="summary-card">
-            <ion-icon
-              :icon="swapHorizontalOutline"
-              class="card-icon"
-            ></ion-icon>
-            <ion-text class="card-title">Total Finished Iqub</ion-text>
-            <ion-text class="card-value">{{ totalFinishedIqub }}</ion-text>
-          </div>
-
-          <!-- Total Saved Amount Card -->
-          <div class="summary-card">
-            <ion-text class="card-title">Total Saved Amount</ion-text>
-            <ion-text class="card-value">{{ totalSavedAmount }}</ion-text>
-          </div>
-
-          <!-- Total Lottery Won Card -->
-          <div class="summary-card">
-            <ion-text class="card-title">Total lottery Won</ion-text>
-            <ion-text class="card-value">{{ totalLotteryWon }}</ion-text>
-          </div>
-        </div>
-
-        <!-- Charts Section -->
-        <div class="charts-section">
-          <!-- Top Row: Line Chart and Bar Chart -->
-          <div class="charts-row">
-            <!-- Multi-Line Chart -->
-            <div class="chart-container line-chart-container">
-              <div class="chart-placeholder">
-                <!-- SVG representation of multi-line chart -->
-                <svg
-                  viewBox="0 0 300 200"
-                  class="chart-svg"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <!-- Grid lines -->
-                  <defs>
-                    <linearGradient
-                      id="gridGradient"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stop-color="#f0f0f0" />
-                      <stop offset="100%" stop-color="#e0e0e0" />
-                    </linearGradient>
-                  </defs>
-                  <!-- Y-axis grid lines -->
-                  <line
-                    x1="40"
-                    y1="20"
-                    x2="40"
-                    y2="180"
-                    stroke="#ddd"
-                    stroke-width="1"
-                  />
-                  <line
-                    x1="40"
-                    y1="180"
-                    x2="280"
-                    y2="180"
-                    stroke="#ddd"
-                    stroke-width="1"
-                  />
-                  <!-- Sample data lines (simplified representation) -->
-                  <polyline
-                    points="50,150 80,120 110,100 140,80 170,90 200,70 230,60 260,50"
-                    fill="none"
-                    stroke="#4285f4"
-                    stroke-width="2"
-                  />
-                  <polyline
-                    points="50,140 80,110 110,90 140,70 170,80 200,60 230,50 260,40"
-                    fill="none"
-                    stroke="#ff9800"
-                    stroke-width="2"
-                  />
-                  <polyline
-                    points="50,130 80,100 110,80 140,60 170,70 200,50 230,40 260,30"
-                    fill="none"
-                    stroke="#34a853"
-                    stroke-width="2"
-                  />
-                  <!-- Data points -->
-                  <circle cx="50" cy="150" r="3" fill="#4285f4" />
-                  <circle cx="80" cy="120" r="3" fill="#4285f4" />
-                  <circle cx="110" cy="100" r="3" fill="#4285f4" />
-                </svg>
-              </div>
-            </div>
-
-            <!-- Vertical Bar Chart -->
-            <div class="chart-container bar-chart-container">
-              <div class="chart-placeholder">
-                <!-- SVG representation of bar chart -->
-                <svg
-                  viewBox="0 0 300 200"
-                  class="chart-svg"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <!-- Bars -->
-                  <rect
-                    x="40"
-                    y="120"
-                    width="30"
-                    height="60"
-                    fill="#4285f4"
-                    rx="2"
-                  />
-                  <text x="55" y="115" text-anchor="middle" font-size="12">
-                    20%
-                  </text>
-                  <rect
-                    x="85"
-                    y="100"
-                    width="30"
-                    height="80"
-                    fill="#00bcd4"
-                    rx="2"
-                  />
-                  <text x="100" y="95" text-anchor="middle" font-size="12">
-                    30%
-                  </text>
-                  <rect
-                    x="130"
-                    y="80"
-                    width="30"
-                    height="100"
-                    fill="#ff9800"
-                    rx="2"
-                  />
-                  <text x="145" y="75" text-anchor="middle" font-size="12">
-                    40%
-                  </text>
-                  <rect
-                    x="175"
-                    y="90"
-                    width="30"
-                    height="90"
-                    fill="#ffc107"
-                    rx="2"
-                  />
-                  <text x="190" y="85" text-anchor="middle" font-size="12">
-                    25%
-                  </text>
-                  <rect
-                    x="220"
-                    y="70"
-                    width="30"
-                    height="110"
-                    fill="#8bc34a"
-                    rx="2"
-                  />
-                  <text x="235" y="65" text-anchor="middle" font-size="12">
-                    36%
-                  </text>
-                  <!-- X-axis -->
-                  <line
-                    x1="40"
-                    y1="180"
-                    x2="280"
-                    y2="180"
-                    stroke="#ddd"
-                    stroke-width="1"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom Row: Monthly Line Chart with Percentages -->
-          <div class="chart-container monthly-chart-container">
-            <div class="chart-placeholder monthly-chart">
-              <!-- SVG representation of monthly chart -->
-              <svg
-                viewBox="0 0 600 200"
-                class="chart-svg monthly-svg"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <!-- Background pattern (light blue) -->
-                <rect
-                  x="50"
-                  y="20"
-                  width="400"
-                  height="140"
-                  fill="#e3f2fd"
-                  opacity="0.3"
-                />
-                <!-- Y-axis labels -->
-                <text x="45" y="30" text-anchor="end" font-size="10">125</text>
-                <text x="45" y="60" text-anchor="end" font-size="10">100</text>
-                <text x="45" y="90" text-anchor="end" font-size="10">75</text>
-                <text x="45" y="120" text-anchor="end" font-size="10">50</text>
-                <text x="45" y="150" text-anchor="end" font-size="10">25</text>
-                <!-- X-axis labels (months) -->
-                <text x="70" y="175" text-anchor="middle" font-size="10">
-                  Jan
-                </text>
-                <text x="100" y="175" text-anchor="middle" font-size="10">
-                  Feb
-                </text>
-                <text x="130" y="175" text-anchor="middle" font-size="10">
-                  Mar
-                </text>
-                <text x="160" y="175" text-anchor="middle" font-size="10">
-                  Apr
-                </text>
-                <text x="190" y="175" text-anchor="middle" font-size="10">
-                  May
-                </text>
-                <text x="220" y="175" text-anchor="middle" font-size="10">
-                  Jun
-                </text>
-                <text x="250" y="175" text-anchor="middle" font-size="10">
-                  Jul
-                </text>
-                <text x="280" y="175" text-anchor="middle" font-size="10">
-                  Aug
-                </text>
-                <text x="310" y="175" text-anchor="middle" font-size="10">
-                  Sep
-                </text>
-                <text x="340" y="175" text-anchor="middle" font-size="10">
-                  Oct
-                </text>
-                <text x="370" y="175" text-anchor="middle" font-size="10">
-                  Nov
-                </text>
-                <text x="400" y="175" text-anchor="middle" font-size="10">
-                  Dec
-                </text>
-                <!-- Grid lines -->
-                <line
-                  x1="50"
-                  y1="20"
-                  x2="50"
-                  y2="160"
-                  stroke="#ddd"
-                  stroke-width="1"
-                />
-                <line
-                  x1="50"
-                  y1="160"
-                  x2="450"
-                  y2="160"
-                  stroke="#ddd"
-                  stroke-width="1"
-                />
-                <!-- Sample lines (simplified) -->
-                <polyline
-                  points="70,120 100,110 130,100 160,90 190,85 220,80 250,75 280,70 310,65 340,60 370,55 400,50"
-                  fill="none"
-                  stroke="#00bcd4"
-                  stroke-width="2"
-                />
-                <polyline
-                  points="70,100 100,90 130,80 160,70 190,65 220,60 250,55 280,50 310,45 340,40 370,35 400,30"
-                  fill="none"
-                  stroke="#ff9800"
-                  stroke-width="2"
-                />
-                <!-- Data points -->
-                <circle cx="70" cy="120" r="3" fill="#00bcd4" />
-                <circle cx="100" cy="110" r="3" fill="#00bcd4" />
-                <circle cx="400" cy="50" r="3" fill="#00bcd4" />
-                <circle cx="70" cy="100" r="3" fill="#ff9800" />
-                <circle cx="100" cy="90" r="3" fill="#ff9800" />
-                <circle cx="400" cy="30" r="3" fill="#ff9800" />
-              </svg>
-              <!-- Percentage indicators on the right -->
-              <div class="percentage-indicators">
-                <div class="percentage-item">
-                  <div class="percentage-value">67%</div>
-                  <div class="percentage-label">LOREM IPSUM</div>
-                </div>
-                <div class="percentage-item">
-                  <div class="percentage-value">96%</div>
-                  <div class="percentage-label">LOREM IPSUM</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ion-button class="action-btn" @click="makePayment">
+            <template #start>
+              <ion-icon :icon="cardOutline"></ion-icon>
+            </template>
+            Make Payment
+          </ion-button>
+          <ion-button class="action-btn" @click="viewProfile">
+            <template #start>
+              <ion-icon :icon="personOutline"></ion-icon>
+            </template>
+            View Profile
+          </ion-button>
         </div>
       </div>
+
+      <!-- Pull to Refresh & Floating Refresh Button -->
+      <template #fixed>
+        <ion-refresher @ionRefresh="handleRefresh($event)">
+          <ion-refresher-content></ion-refresher-content>
+        </ion-refresher>
+
+        <ion-fab vertical="bottom" horizontal="end">
+          <ion-fab-button @click="handleRefresh" :disabled="isRefreshing">
+            <ion-icon :icon="refreshOutline"></ion-icon>
+          </ion-fab-button>
+        </ion-fab>
+      </template>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import {
   IonPage,
   IonContent,
   IonIcon,
-  IonText,
-  IonBadge,
   IonButton,
+  IonRefresher,
+  IonRefresherContent,
+  IonFab,
+  IonFabButton,
+  menuController,
 } from "@ionic/vue";
 import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 import {
   menuOutline,
   notificationsOutline,
-  statsChartOutline,
-  swapHorizontalOutline,
+  searchOutline,
+  cardOutline,
+  personOutline,
+  refreshOutline,
+  cashOutline,
+  trophyOutline,
+  peopleOutline,
+  calendarOutline,
 } from "ionicons/icons";
 import MemberTabBar from "@/components/MemberTabBar.vue";
+import ProgressRing from "@/components/ProgressRing.vue";
 
 const router = useRouter();
+const store = useStore();
 
-// Data Variables
-const totalIqubJoined = ref("10");
-const totalFinishedIqub = ref("65");
-const totalSavedAmount = ref("10,000");
-const totalLotteryWon = ref("12");
-const notificationCount = ref(3);
+// Computed properties
+const userName = computed(() => {
+  return store.getters["auth/getUser"]?.name || "Member";
+});
+
+const dashboardData = computed(() => store.state.member.dashboard);
+const isLoading = computed(() => store.state.member.status === "loading");
+const error = computed(() => store.state.member.error);
+
+// Dashboard summary data
+const totalSavings = computed(
+  () => dashboardData.value?.summary?.totalSavings || 0
+);
+const savingsPercentage = computed(
+  () => dashboardData.value?.summary?.savingsPercentage || 0
+);
+const activeIqubs = computed(
+  () => dashboardData.value?.summary?.activeIqubs || 0
+);
+const completedIqubs = computed(
+  () => dashboardData.value?.summary?.completedIqubs || 0
+);
+const lotteryPosition = computed(
+  () => dashboardData.value?.summary?.lotteryPosition || 0
+);
+const nextLotteryDate = computed(
+  () => dashboardData.value?.summary?.nextLotteryDate || ""
+);
+const recentActivities = computed(
+  () => dashboardData.value?.recentActivities || []
+);
+
+// State
+const isRefreshing = ref(false);
 
 // Event Handlers
-const openMenu = () => {
-  console.log("Open menu clicked");
+const openMenu = async () => {
+  await menuController.open();
 };
 
 const goToNotifications = () => {
-  console.log("Notifications icon clicked");
+  router.push("/notifications");
 };
 
-const goToJoinIqub = () => {
-  router.push("/member/join-iqub");
+const goToDiscover = () => {
+  router.push("/member/discover");
 };
+
+const makePayment = () => {
+  // Navigate to payment page or show payment modal
+  console.log("Make payment clicked");
+};
+
+const viewProfile = () => {
+  router.push("/member/profile");
+};
+
+const goToMyIqubs = () => {
+  router.push("/member/my-iqubs");
+};
+
+const handleRefresh = async (event?: any) => {
+  isRefreshing.value = true;
+  try {
+    await store.dispatch("member/fetchMemberDashboard");
+  } catch (error) {
+    console.error("Error refreshing dashboard:", error);
+  } finally {
+    isRefreshing.value = false;
+    if (event) {
+      event.target.complete();
+    }
+  }
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
+
+const formatRelativeTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800)
+    return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+};
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case "payment":
+      return cashOutline;
+    case "lottery_win":
+      return trophyOutline;
+    case "iqub_join":
+      return peopleOutline;
+    default:
+      return cashOutline;
+  }
+};
+
+// Lifecycle
+onMounted(() => {
+  store.dispatch("member/fetchMemberDashboard");
+});
 </script>
 
 <style scoped>
-/* Re-use color variables */
+/* Wujo Brand Colors */
 :root {
-  --ion-color-wujo-primary: #006a52; /* Dark green */
-  --ion-color-wujo-light-grey: #f0f2f5; /* Light grey background */
-  --ion-color-wujo-text-grey: #555; /* Grey text */
-  --ion-color-wujo-dark-grey: #333; /* Darker text for values/titles */
+  --wujo-dark-green: #014023;
+  --wujo-aquamarine: #5fd9ac;
+  --wujo-white-smoke: #f2f2f2;
 }
 
 ion-content {
-  --background: var(--ion-color-wujo-light-grey);
+  --background: var(--wujo-white-smoke);
   --padding-top: 0;
   --padding-bottom: 0;
   --padding-start: 0;
   --padding-end: 0;
-  display: block;
 }
 
-/* --- Top Bar Styles --- */
-.top-bar {
+/* --- Premium Hero Section --- */
+.hero-section {
+  background: linear-gradient(
+    135deg,
+    #014023 0%,
+    #012d19 50%,
+    rgba(95, 217, 172, 0.1) 100%
+  );
+  padding: 24px;
+  border-radius: 0 0 24px 24px;
+  margin-bottom: 20px;
+}
+
+.hero-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: var(--ion-color-wujo-primary);
-  color: white;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  margin-bottom: 20px;
 }
 
-.menu-icon,
-.notification-icon {
-  font-size: 24px;
+.hero-icon {
+  font-size: 28px;
   color: white;
   cursor: pointer;
+  transition: transform var(--wujo-transition-fast) var(--wujo-timing-function);
 }
 
-.page-title {
-  font-size: 18px;
-  font-weight: bold;
+.hero-icon:active {
+  transform: scale(0.95);
+}
+
+.hero-greeting {
+  font-size: var(--wujo-font-size-hero);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-tight);
   color: white;
-  flex-grow: 1;
-  text-align: center;
-  margin-left: 20px;
-  margin-right: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 0;
+  animation: fadeInDown 0.5s ease-out;
 }
 
-.notification-container {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  font-size: 10px;
-  padding: 3px 5px;
-  border-radius: 10px;
-  --background: var(--ion-color-danger, #eb445a);
-  color: white;
-  z-index: 1;
-}
-
-/* --- Member Tab Bar Styles --- */
+/* --- Member Tab Bar --- */
 member-tab-bar {
   display: block;
   margin-bottom: 20px;
-  background: var(--ion-color-wujo-light-grey);
-  padding: 0 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* --- Main Dashboard Content Area --- */
+/* --- Dashboard Content --- */
 .dashboard-content {
-  padding: 0 20px;
-  padding-bottom: 40px;
+  padding: 0 20px 100px 20px;
+  animation: slideUp 0.3s ease-out;
 }
 
-/* --- Welcome Section --- */
-.welcome-section {
-  text-align: center;
-  margin-bottom: 30px;
-  padding-top: 20px;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.welcome-text {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey);
-  margin-bottom: 15px;
-}
-
-.join-iqub-button {
-  --background: var(--ion-color-wujo-primary);
-  --background-activated: var(--ion-color-wujo-primary);
-  --border-radius: 12px;
-  font-weight: bold;
-  color: white;
-  text-transform: capitalize;
-  height: 50px;
-  margin-bottom: 15px;
-  min-width: 200px;
-}
-
-.info-text {
-  font-size: 14px;
-  color: var(--ion-color-wujo-text-grey);
-  margin-top: 10px;
-  line-height: 1.5;
-}
-
-/* --- Summary Cards Grid --- */
-.summary-cards-grid {
+/* --- Summary Cards --- */
+.summary-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-bottom: 30px;
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
 .summary-card {
-  background: #f0f2f5; /* Light grey background like in image */
-  padding: 15px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: var(--wujo-dark-green);
+  color: white;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(1, 64, 35, 0.2);
+  cursor: pointer;
+  transition: transform var(--wujo-transition-fast) var(--wujo-timing-function),
+    box-shadow var(--wujo-transition-fast) var(--wujo-timing-function);
+  animation: scaleIn var(--wujo-transition-normal) var(--wujo-timing-function);
+  animation-fill-mode: both;
 }
 
-.card-icon {
-  font-size: 36px;
-  color: #555; /* Dark grey icon color */
-  margin-bottom: 10px;
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.summary-card:active {
+  transform: scale(0.98);
+}
+
+.card-progress {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.card-icon-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.card-icon-large {
+  font-size: 48px;
+  color: var(--wujo-aquamarine);
+}
+
+.card-info {
+  text-align: center;
 }
 
 .card-title {
-  font-size: 12px;
-  color: var(--ion-color-wujo-text-grey);
-  margin-bottom: 8px;
-  font-weight: normal;
+  font-size: var(--wujo-font-size-body);
+  font-weight: var(--wujo-font-weight-regular);
+  line-height: var(--wujo-line-height-normal);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 8px 0;
 }
 
 .card-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey);
+  font-size: var(--wujo-font-size-title);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-tight);
+  color: white;
+  margin: 0 0 4px 0;
 }
 
-/* --- Charts Section --- */
-.charts-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.charts-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.chart-container {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.chart-placeholder {
-  padding: 15px;
-  min-height: 200px;
+.card-trend {
+  font-size: var(--wujo-font-size-caption);
+  line-height: var(--wujo-line-height-normal);
+  color: var(--wujo-aquamarine);
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
 }
 
-.chart-svg {
-  width: 100%;
-  height: auto;
-  max-height: 180px;
+.inline-icon {
+  font-size: 12px;
 }
 
-.monthly-chart-container {
-  width: 100%;
+/* --- Activity Section --- */
+.activity-section {
+  margin-bottom: 32px;
 }
 
-.monthly-chart {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 15px;
-  min-height: 200px;
+.section-title {
+  font-size: var(--wujo-font-size-section);
+  font-weight: var(--wujo-font-weight-bold);
+  line-height: var(--wujo-line-height-normal);
+  color: var(--wujo-dark-green);
+  margin: 0 0 16px 0;
 }
 
-.monthly-svg {
-  flex: 1;
-  max-height: 160px;
-}
-
-.percentage-indicators {
+.activity-feed {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  margin-left: 20px;
-  padding-left: 20px;
-  border-left: 1px solid #e0e0e0;
+  gap: 12px;
 }
 
-.percentage-item {
+.activity-item {
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform var(--wujo-transition-fast) var(--wujo-timing-function);
+}
+
+.activity-item:active {
+  transform: scale(0.98);
+}
+
+.activity-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(95, 217, 172, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-icon {
+  font-size: 20px;
+  color: var(--wujo-aquamarine);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  font-size: var(--wujo-font-size-body);
+  font-weight: var(--wujo-font-weight-semibold);
+  line-height: var(--wujo-line-height-normal);
+  color: var(--wujo-dark-green);
+  margin: 0 0 4px 0;
+}
+
+.activity-description {
+  font-size: var(--wujo-font-size-body);
+  line-height: var(--wujo-line-height-normal);
+  color: #666;
+  margin: 0;
+}
+
+.activity-time {
+  font-size: var(--wujo-font-size-caption);
+  line-height: var(--wujo-line-height-normal);
+  color: #999;
+  flex-shrink: 0;
+}
+
+/* Activity Skeleton Loader */
+.activity-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skeleton-item {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  height: 72px;
+  border-radius: 16px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Empty State */
+.empty-state {
   text-align: center;
+  padding: 40px 20px;
 }
 
-.percentage-value {
-  font-size: 36px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey);
-  margin-bottom: 5px;
+.empty-icon {
+  font-size: 64px;
+  color: #ccc;
+  margin-bottom: 16px;
 }
 
-.percentage-label {
-  font-size: 12px;
-  color: var(--ion-color-wujo-text-grey);
-  text-transform: uppercase;
+.empty-text {
+  font-size: var(--wujo-font-size-card);
+  font-weight: var(--wujo-font-weight-semibold);
+  line-height: var(--wujo-line-height-normal);
+  color: #666;
+  margin: 0 0 8px 0;
 }
 
-/* Responsive adjustments */
+.empty-subtext {
+  font-size: var(--wujo-font-size-body);
+  line-height: var(--wujo-line-height-normal);
+  color: #999;
+  margin: 0;
+}
+
+/* --- Quick Actions (Thumb Zone Optimized) --- */
+/* Positioned in bottom 30% of viewport for easy one-handed access */
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.action-btn {
+  --background: var(--wujo-aquamarine);
+  --background-activated: #4ec99a;
+  --color: var(--wujo-dark-green);
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(95, 217, 172, 0.35);
+  height: var(--wujo-button-height);
+  font-size: var(--wujo-font-size-body);
+  font-weight: var(--wujo-font-weight-semibold);
+  text-transform: none;
+  transition: transform var(--wujo-transition-fast) var(--wujo-timing-function);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+}
+
+/* --- Floating Action Button --- */
+ion-fab-button {
+  --background: var(--wujo-dark-green);
+  --background-activated: #012d19;
+  --color: white;
+  --box-shadow: 0 4px 16px rgba(1, 64, 35, 0.3);
+  animation: slideUp 0.5s ease-out;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .charts-row {
+  .hero-greeting {
+    font-size: var(--wujo-font-size-title);
+  }
+
+  .summary-cards {
     grid-template-columns: 1fr;
   }
 
-  .monthly-chart {
-    flex-direction: column;
+  .card-value {
+    font-size: var(--wujo-font-size-section);
+  }
+}
+
+@media (min-width: 769px) {
+  .dashboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
-  .percentage-indicators {
-    flex-direction: row;
-    margin-left: 0;
-    margin-top: 20px;
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px solid #e0e0e0;
-    padding-top: 20px;
-    width: 100%;
-    justify-content: space-around;
+  .quick-actions {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>

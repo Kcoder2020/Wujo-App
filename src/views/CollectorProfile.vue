@@ -1,123 +1,355 @@
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <!-- Custom Top Bar (Reused component/structure) -->
-      <div class="top-bar">
-        <ion-icon
-          :icon="menuOutline"
-          class="menu-icon"
-          @click="openMenu"
-        ></ion-icon>
-        <ion-text class="page-title">HI Collector</ion-text>
-        <div class="notification-container">
+      <!-- Premium Hero Section -->
+      <div class="profile-hero">
+        <div class="hero-header">
           <ion-icon
-            :icon="notificationsOutline"
-            class="notification-icon"
-            @click="goToNotifications"
+            :icon="menuOutline"
+            class="menu-icon"
+            @click="openMenu"
           ></ion-icon>
-          <ion-badge color="danger" class="notification-badge">3</ion-badge>
+          <div class="notification-container">
+            <ion-icon
+              :icon="notificationsOutline"
+              class="notification-icon"
+              @click="goToNotifications"
+            ></ion-icon>
+            <ion-badge
+              v-if="notificationCount > 0"
+              color="danger"
+              class="notification-badge"
+              >{{ notificationCount }}</ion-badge
+            >
+          </div>
         </div>
-      </div>
 
-      <!-- Collector Tab Bar (Integrated) -->
-      <!-- Ensure 'profile' is the correct active-tab value matching your CollectorTabBar component -->
-      <collector-tab-bar active-tab="collector-profile"></collector-tab-bar>
-
-      <!-- Main Content Area for Profile -->
-      <div class="profile-content">
-        <!-- Loading Indicator -->
-        <!-- You might want a specific status/error for profile data if fetched separately -->
-        <!-- For simplicity, let's assume profile data is part of the main auth state -->
-        <div v-if="!collectorProfileData" class="loading-indicator">
-          <ion-spinner name="dots" color="wujo-primary" />
-          <ion-text>Loading profile...</ion-text>
-        </div>
-        <!-- Error Message (if fetching profile data) -->
-        <!-- <div v-else-if="profileError" class="error-message"> -->
-        <!--   <p>Error loading profile: {{ profileError }}</p> -->
-        <!--    <ion-button @click="retryFetchProfile">Retry</ion-button> -->
-        <!-- </div> -->
-
-        <!-- Profile Card Container (Visible when profile data is available) -->
-        <div v-else-if="collectorProfileData" class="profile-card">
-          <!-- Profile Image -->
-          <div class="profile-image-container">
-            <!-- Use ion-avatar or img for the profile picture -->
+        <div class="hero-content">
+          <!-- Profile Avatar -->
+          <div class="profile-avatar">
             <img
-              :src="
-                collectorProfileData.avatar_url ||
-                'https://picsum.photos/200/300'
-              "
+              :src="profileData.avatar_url || defaultAvatar"
               alt="Profile Picture"
-              class="profile-image"
+              class="avatar-image"
             />
-            <!-- If using ion-avatar: <ion-avatar><img :src="..." /></ion-avatar> -->
           </div>
 
-          <!-- Name -->
-          <ion-text class="profile-name">{{
-            collectorProfileData.name || "N/A"
-          }}</ion-text>
+          <!-- Collector Name -->
+          <h1 class="collector-name">{{ profileData.name || "Collector" }}</h1>
 
           <!-- Phone Number -->
-          <ion-text class="profile-phone">{{
-            collectorProfileData.phone || "N/A"
-          }}</ion-text>
+          <p class="collector-phone">{{ profileData.phone || "N/A" }}</p>
+
+          <!-- Join Date -->
+          <div class="join-date">
+            <ion-icon :icon="calendarOutline" />
+            <span
+              >Collector since
+              {{ formatJoinDate(profileData.created_at) }}</span
+            >
+          </div>
 
           <!-- Edit Profile Button -->
           <ion-button
             expand="block"
             class="edit-profile-button"
-            @click="editProfile"
+            @click="openEditModal"
           >
+            <template #start>
+              <ion-icon :icon="createOutline" />
+            </template>
             Edit Profile
           </ion-button>
+        </div>
+      </div>
 
-          <!-- Summary Stats Row -->
-          <!-- This row has a distinct background -->
-          <div class="stats-row">
-            <div class="stat-item">
-              <ion-text class="stat-value">{{
-                collectorProfileData?.joined_iqubs[0]?.total_collected || "0"
-              }}</ion-text>
-              <ion-text class="stat-label">Total Collected</ion-text>
-            </div>
-            <div class="stat-item">
-              <!-- Assuming 'iqub_joined_count' or similar exists -->
-              <ion-text class="stat-value">{{
-                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
-              }}</ion-text>
-              <ion-text class="stat-label">Iqub Joined members</ion-text>
-            </div>
-            <div class="stat-item">
-              <!-- Assuming 'lottery_won_count' or similar exists -->
-              <ion-text class="stat-value">{{
-                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
-              }}</ion-text>
-              <ion-text class="stat-label">Lottey Won</ion-text>
-            </div>
-            <div class="stat-item">
-              <!-- Assuming 'finished_iqub_count' or similar exists -->
-              <ion-text class="stat-value">{{
-                collectorProfileData?.joined_iqubs[0]?.members_count || "0"
-              }}</ion-text>
-              <ion-text class="stat-label">Finished Iqub</ion-text>
+      <!-- Collector Tab Bar -->
+      <collector-tab-bar />
+
+      <!-- Main Content Area -->
+      <div class="profile-content">
+        <!-- Loading State -->
+        <div v-if="isLoading" class="loading-state">
+          <ion-spinner name="dots" color="primary" />
+          <p>Loading profile...</p>
+        </div>
+
+        <!-- Content Sections -->
+        <div v-else class="content-sections">
+          <!-- Statistics Section -->
+          <div class="statistics-section">
+            <h2 class="section-title">Statistics</h2>
+            <div class="stats-grid">
+              <!-- Iqubs Created -->
+              <div class="stat-card">
+                <div class="stat-icon create">
+                  <ion-icon :icon="addCircleOutline" />
+                </div>
+                <div class="stat-info">
+                  <p class="stat-value">
+                    {{ profileData.iqubs_created_count || 0 }}
+                  </p>
+                  <p class="stat-label">Iqubs Created</p>
+                </div>
+              </div>
+
+              <!-- Total Members -->
+              <div class="stat-card">
+                <div class="stat-icon members">
+                  <ion-icon :icon="peopleOutline" />
+                </div>
+                <div class="stat-info">
+                  <p class="stat-value">
+                    {{ profileData.total_members_count || 0 }}
+                  </p>
+                  <p class="stat-label">Total Members</p>
+                </div>
+              </div>
+
+              <!-- Total Collections -->
+              <div class="stat-card">
+                <div class="stat-icon cash">
+                  <ion-icon :icon="cashOutline" />
+                </div>
+                <div class="stat-info">
+                  <p class="stat-value">
+                    {{ formatCurrency(profileData.total_collected || 0) }}
+                  </p>
+                  <p class="stat-label">Total Collected</p>
+                </div>
+              </div>
+
+              <!-- Completed Iqubs -->
+              <div class="stat-card">
+                <div class="stat-icon complete">
+                  <ion-icon :icon="checkmarkCircleOutline" />
+                </div>
+                <div class="stat-info">
+                  <p class="stat-value">
+                    {{ profileData.completed_iqubs_count || 0 }}
+                  </p>
+                  <p class="stat-label">Completed Iqubs</p>
+                </div>
+              </div>
             </div>
           </div>
-          <!-- Edit Profile Button -->
-          <ion-button
-            expand="block"
-            class="logout-profile-button"
-            @click="logoutProfile"
-          >
-            Logout
-          </ion-button>
+
+          <!-- Created Iqubs Section -->
+          <div class="created-iqubs-section">
+            <h2 class="section-title">My Created Iqubs</h2>
+
+            <div v-if="createdIqubs.length > 0" class="iqubs-list">
+              <div
+                v-for="iqub in createdIqubs"
+                :key="iqub.id"
+                class="iqub-card"
+                @click="navigateToIqub(iqub.id)"
+              >
+                <div class="iqub-header">
+                  <h3 class="iqub-name">{{ iqub.name }}</h3>
+                  <ion-badge
+                    :color="getIqubStatusColor(iqub.status)"
+                    class="status-badge"
+                  >
+                    {{ iqub.status }}
+                  </ion-badge>
+                </div>
+
+                <div class="iqub-details">
+                  <div class="detail-item">
+                    <ion-icon :icon="peopleOutline" />
+                    <span>{{ iqub.members_count }} members</span>
+                  </div>
+                  <div class="detail-item">
+                    <ion-icon :icon="cashOutline" />
+                    <span
+                      >{{
+                        formatCurrency(iqub.contribution_amount || 0)
+                      }}/round</span
+                    >
+                  </div>
+                  <div class="detail-item">
+                    <ion-icon :icon="calendarOutline" />
+                    <span
+                      >Round {{ iqub.current_round }}/{{
+                        iqub.total_rounds
+                      }}</span
+                    >
+                  </div>
+                </div>
+
+                <div class="iqub-progress">
+                  <div class="progress-bar">
+                    <div
+                      class="progress-fill"
+                      :style="{ width: getIqubProgress(iqub) + '%' }"
+                    ></div>
+                  </div>
+                  <span class="progress-text"
+                    >{{ getIqubProgress(iqub) }}% complete</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
+              <ion-icon :icon="walletOutline" />
+              <p>No Iqubs created yet</p>
+              <ion-button
+                fill="outline"
+                @click="router.push('/collector/create-iqub')"
+              >
+                Create Your First Iqub
+              </ion-button>
+            </div>
+          </div>
+
+          <!-- Settings & Logout Section -->
+          <div class="settings-section">
+            <h2 class="section-title">Settings</h2>
+
+            <div class="settings-list">
+              <!-- Account Settings -->
+              <div class="setting-item" @click="openAccountSettings">
+                <div class="setting-icon">
+                  <ion-icon :icon="personOutline" />
+                </div>
+                <div class="setting-info">
+                  <p class="setting-title">Account Settings</p>
+                  <p class="setting-subtitle">
+                    Manage your account preferences
+                  </p>
+                </div>
+                <ion-icon :icon="chevronForwardOutline" class="setting-arrow" />
+              </div>
+
+              <!-- Security -->
+              <div class="setting-item" @click="openSecuritySettings">
+                <div class="setting-icon">
+                  <ion-icon :icon="lockClosedOutline" />
+                </div>
+                <div class="setting-info">
+                  <p class="setting-title">Security</p>
+                  <p class="setting-subtitle">Password and authentication</p>
+                </div>
+                <ion-icon :icon="chevronForwardOutline" class="setting-arrow" />
+              </div>
+
+              <!-- Logout -->
+              <div class="setting-item logout-item" @click="handleLogout">
+                <div class="setting-icon logout">
+                  <ion-icon :icon="logOutOutline" />
+                </div>
+                <div class="setting-info">
+                  <p class="setting-title">Logout</p>
+                  <p class="setting-subtitle">Sign out of your account</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- Handle case where profile data is success but null/empty -->
-        <!-- <div v-else-if="profileStatus === 'success' && !collectorProfileData" class="empty-state"> -->
-        <!--    <ion-text>Profile data not available.</ion-text> -->
-        <!-- </div> -->
       </div>
+
+      <!-- Edit Profile Modal -->
+      <ion-modal :is-open="isEditModalOpen" @did-dismiss="closeEditModal">
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Edit Profile</ion-title>
+            <template #end>
+              <ion-buttons>
+                <ion-button @click="closeEditModal">Close</ion-button>
+              </ion-buttons>
+            </template>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+          <form @submit.prevent="saveProfile">
+            <!-- Avatar Upload -->
+            <div class="form-group avatar-upload">
+              <div class="current-avatar">
+                <img :src="editForm.avatar_url || defaultAvatar" alt="Avatar" />
+              </div>
+              <ion-button fill="outline" size="small" @click="selectAvatar">
+                <template #start>
+                  <ion-icon :icon="cameraOutline" />
+                </template>
+                Change Photo
+              </ion-button>
+              <input
+                ref="avatarInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleAvatarChange"
+              />
+            </div>
+
+            <!-- Name Field -->
+            <div class="form-group">
+              <ion-label position="stacked">Name *</ion-label>
+              <ion-input
+                v-model="editForm.name"
+                type="text"
+                placeholder="Enter your name"
+                :class="{ 'ion-invalid': errors.name }"
+              />
+              <ion-text v-if="errors.name" color="danger" class="error-text">
+                {{ errors.name }}
+              </ion-text>
+            </div>
+
+            <!-- Phone Field -->
+            <div class="form-group">
+              <ion-label position="stacked">Phone *</ion-label>
+              <ion-input
+                v-model="editForm.phone"
+                type="tel"
+                placeholder="+251912345678"
+                :class="{ 'ion-invalid': errors.phone }"
+              />
+              <ion-text v-if="errors.phone" color="danger" class="error-text">
+                {{ errors.phone }}
+              </ion-text>
+            </div>
+
+            <!-- Email Field -->
+            <div class="form-group">
+              <ion-label position="stacked">Email</ion-label>
+              <ion-input
+                v-model="editForm.email"
+                type="email"
+                placeholder="your.email@example.com"
+                :class="{ 'ion-invalid': errors.email }"
+              />
+              <ion-text v-if="errors.email" color="danger" class="error-text">
+                {{ errors.email }}
+              </ion-text>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <ion-button
+                expand="block"
+                type="submit"
+                :disabled="isSaving"
+                class="save-button"
+              >
+                <ion-spinner v-if="isSaving" name="dots" />
+                <span v-else>Save Changes</span>
+              </ion-button>
+              <ion-button
+                expand="block"
+                fill="outline"
+                @click="closeEditModal"
+                :disabled="isSaving"
+              >
+                Cancel
+              </ion-button>
+            </div>
+          </form>
+        </ion-content>
+      </ion-modal>
     </ion-content>
   </ion-page>
 </template>
@@ -126,310 +358,720 @@
 import {
   IonPage,
   IonContent,
-  IonText,
   IonIcon,
   IonBadge,
   IonButton,
-  IonSpinner, // For loading indicator
-  // IonAvatar, // If using ion-avatar for image
-  menuController, // Import menuController
+  IonSpinner,
+  IonModal,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonLabel,
+  IonInput,
+  IonText,
+  menuController,
+  toastController,
   useIonRouter,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { computed, onMounted, ref } from "vue"; // Import ref
+import { computed, ref, onMounted, reactive } from "vue";
+import { useNotifications } from "@/composables";
 
 // Import Icons
-import { menuOutline, notificationsOutline } from "ionicons/icons";
+import {
+  menuOutline,
+  notificationsOutline,
+  calendarOutline,
+  createOutline,
+  addCircleOutline,
+  peopleOutline,
+  cashOutline,
+  checkmarkCircleOutline,
+  walletOutline,
+  cameraOutline,
+  personOutline,
+  lockClosedOutline,
+  logOutOutline,
+  chevronForwardOutline,
+} from "ionicons/icons";
 
-// Import CollectorTabBar component
+// Import Components
 import CollectorTabBar from "@/components/CollectorTabBar.vue";
-
-// Import a default profile image if needed
-import defaultProfileImage from "@/assets/img/profile.jpeg"; // Assuming you have a default profile image in assets/img
 
 const store = useStore();
 const router = useRouter();
-const ionRouter = useIonRouter(); // 2. Get the IonRouter instance
+const ionRouter = useIonRouter();
+const { unreadCount } = useNotifications();
 
-// --- Profile Data (Assuming it's in the Auth store) ---
-// You should verify where your user/profile data is stored after login.
-// It's commonly part of the auth module state (e.g., state.auth.user).
-// Let's assume your auth module has a getter or state property like `user`
-// which contains the profile data for the logged-in user.
-// ADJUST THIS COMPUTED PROPERTY based on your actual store structure:
-const collectorProfileData = computed(() => store.getters["auth/getUser"]); // Example: assuming an auth module with a getUser getter
-// OR if stored directly in state:
-// const collectorProfileData = computed(() => store.state.auth.user);
+const defaultAvatar =
+  "https://ui-avatars.com/api/?name=Collector&background=5FD9AC&color=014023&size=200";
 
-// Assuming your profile data object has properties like:
-// { id, name, phone, avatar_url, total_saved, iqub_joined_count, lottery_won_count, finished_iqub_count }
+// Edit Modal State
+const isEditModalOpen = ref(false);
+const isSaving = ref(false);
+const avatarInput = ref<HTMLInputElement | null>(null);
 
-// If profile data needs a separate fetch, you'd add state/actions/getters to the auth module
-// or a dedicated profile module, and use those here.
-// Example state/getters if separate:
-// const profileStatus = computed(() => store.state.profile.status); // Assuming dedicated profile module
-// const profileError = computed(() => store.state.profile.error);
+// Edit Form
+const editForm = reactive({
+  name: "",
+  phone: "",
+  email: "",
+  avatar_url: "",
+});
 
-// --- Data Fetching (if profile data needs a separate fetch) ---
-// onMounted(() => {
-//    // Assuming you have an action like 'auth/fetchUserProfile' or 'profile/fetchProfile'
-//    // Check if user data is already loaded or if fetch is needed
-//    if (!collectorProfileData.value && (profileStatus.value === 'idle' || profileStatus.value === 'error')) {
-//        store.dispatch("auth/fetchUserProfile"); // Or "profile/fetchProfile"
-//    }
-// });
-// const retryFetchProfile = () => { store.dispatch("auth/fetchUserProfile"); }; // Retry function for error state
+// Form Errors
+const errors = reactive({
+  name: "",
+  phone: "",
+  email: "",
+});
 
-// --- Event Handlers for Top Bar (Reused) ---
+// Interfaces
+interface Iqub {
+  id: string | number;
+  name: string;
+  status: string;
+  members_count: number;
+  contribution_amount: number;
+  current_round: number;
+  total_rounds: number;
+}
+
+// Computed Properties
+const profileData = computed(() => {
+  // Use auth/getUser as source of truth
+  const user = store.getters["auth/getUser"];
+
+  // Map user data to profile structure with defaults
+  // This prevents "undefined" errors
+  return {
+    name: user?.name || "",
+    phone: user?.phone || "",
+    email: user?.email || "",
+    avatar_url: user?.avatar_url || "",
+    created_at: user?.created_at || new Date().toISOString(),
+    // These would ideally come from a collector module or API
+    // For now, we default to 0 or derive if possible
+    iqubs_created_count: user?.iqubs_created_count || 0,
+    total_members_count: user?.total_members_count || 0,
+    total_collected: user?.total_collected || 0,
+    completed_iqubs_count: user?.completed_iqubs_count || 0,
+  };
+});
+
+// Mock or fetch created Iqubs
+const createdIqubs = computed<Iqub[]>(() => {
+  // If we had a collector module: store.getters["collector/createdIqubs"]
+  // For now, return empty array or mock data to prevent errors
+  return [];
+});
+
+const notificationCount = computed(() => unreadCount.value);
+
+const isLoading = computed(() => {
+  return store.getters["auth/getAuthStatus"] === "loading";
+});
+
+// Lifecycle Hooks
+onMounted(async () => {
+  // Ensure user data is fresh
+  if (!store.getters["auth/getUser"]) {
+    await store.dispatch("auth/fetchUser");
+  }
+});
+
+// Event Handlers
 const openMenu = () => {
-  console.log("Open menu clicked"); /* Implement menu logic */
   menuController.open("app-menu");
 };
+
 const goToNotifications = () => {
-  // router.push("/notifications"); // Navigate to notifications page
-  ionRouter.push("/notifications", "forward", "none");
+  router.push("/notifications");
 };
 
-// --- Profile Actions ---
-const editProfile = () => {
-  console.log("Edit Profile button clicked");
-  // Implement navigation to an Edit Profile page or open a modal
-  // router.push('/collector/profile/edit'); // Example navigation
+const navigateToIqub = (id: string | number) => {
+  router.push(`/collector/iqub/${id}`);
 };
-const logoutProfile = () => {
-  console.log("Edit Profile button clicked");
-  // Implement navigation to an Edit Profile page or open a modal
-  store.dispatch("auth/logout");
-  // router.push("/login"); // Example navigation
-  ionRouter.push("/login", "forward", "none");
+
+const openAccountSettings = () => {
+  // Placeholder for settings navigation
+  console.log("Open account settings");
+};
+
+const openSecuritySettings = () => {
+  // Placeholder for security settings
+  console.log("Open security settings");
+};
+
+const handleLogout = async () => {
+  await store.dispatch("auth/logout");
+  ionRouter.push("/login", "root", "replace");
+};
+
+// Format Helpers
+const formatJoinDate = (dateString: string | undefined): string => {
+  if (!dateString) return "Recently";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+  } catch (e) {
+    return "Recently";
+  }
+};
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+const getIqubStatusColor = (status: string): string => {
+  if (!status) return "medium";
+  switch (status.toLowerCase()) {
+    case "active":
+      return "success";
+    case "completed":
+      return "primary";
+    case "pending":
+      return "warning";
+    default:
+      return "medium";
+  }
+};
+
+const getIqubProgress = (iqub: {
+  current_round: number;
+  total_rounds: number;
+}): number => {
+  if (!iqub || !iqub.total_rounds) return 0;
+  return Math.round((iqub.current_round / iqub.total_rounds) * 100);
+};
+
+// Edit Profile Modal Functions
+const openEditModal = () => {
+  editForm.name = profileData.value.name;
+  editForm.phone = profileData.value.phone;
+  editForm.email = profileData.value.email;
+  editForm.avatar_url = profileData.value.avatar_url;
+
+  errors.name = "";
+  errors.phone = "";
+  errors.email = "";
+
+  isEditModalOpen.value = true;
+};
+
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+};
+
+const selectAvatar = () => {
+  avatarInput.value?.click();
+};
+
+const handleAvatarChange = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      editForm.avatar_url = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const validateForm = (): boolean => {
+  let isValid = true;
+  errors.name = "";
+  errors.phone = "";
+  errors.email = "";
+
+  if (!editForm.name.trim()) {
+    errors.name = "Name is required";
+    isValid = false;
+  }
+
+  if (!editForm.phone.trim()) {
+    errors.phone = "Phone number is required";
+    isValid = false;
+  } else if (!/^\+?[0-9]{10,15}$/.test(editForm.phone.replace(/\s/g, ""))) {
+    errors.phone = "Please enter a valid phone number";
+    isValid = false;
+  }
+
+  if (editForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+    errors.email = "Please enter a valid email address";
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const saveProfile = async () => {
+  if (!validateForm()) return;
+
+  isSaving.value = true;
+  try {
+    // Simulate API call or use store action
+    // await store.dispatch("auth/updateProfile", editForm);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Mock delay
+
+    const toast = await toastController.create({
+      message: "Profile updated successfully!",
+      duration: 2000,
+      color: "success",
+      position: "top",
+    });
+    await toast.present();
+    closeEditModal();
+  } catch (error) {
+    console.error("Error saving profile:", error);
+    const toast = await toastController.create({
+      message: "Failed to update profile",
+      duration: 3000,
+      color: "danger",
+      position: "top",
+    });
+    await toast.present();
+  } finally {
+    isSaving.value = false;
+  }
 };
 </script>
 
 <style scoped>
-/* Re-use color variables (ideally globally in variables.css) */
+/* Wujo Color Variables */
 :root {
-  --ion-color-wujo-primary: #006a52; /* Dark green */
-  --ion-color-wujo-light-grey: #f0f2f5; /* Light grey background */
-  --ion-color-wujo-grey: #dcdcdc; /* Grey for borders */
-  --ion-color-wujo-text-grey: #555; /* Text grey */
-  --ion-color-wujo-dark-grey: #333; /* Darker text for values/titles */
-  --ion-color-wujo-red: #eb445a; /* Red color (less likely needed here) */
-  --ion-color-wujo-green-border: rgba(
-    0,
-    106,
-    82,
-    0.3
-  ); /* Lighter green for borders */
+  --wujo-dark-green: #014023;
+  --wujo-aquamarine: #5fd9ac;
+  --wujo-white-smoke: #f2f2f2;
+  --wujo-text-grey: #666;
+  --wujo-border: #e0e0e0;
 }
 
 ion-content {
-  --background: var(--ion-color-wujo-light-grey);
+  --background: var(--wujo-white-smoke);
   --padding-top: 0;
   --padding-bottom: 0;
-  --padding-start: 0; /* Remove default padding */
+  --padding-start: 0;
   --padding-end: 0;
-  display: block;
 }
 
-/* --- Top Bar Styles (Reused) --- */
-.top-bar {
+/* Premium Hero Section */
+.profile-hero {
+  background: linear-gradient(
+    135deg,
+    #014023 0%,
+    #012d19 50%,
+    rgba(95, 217, 172, 0.1) 100%
+  );
+  padding: 24px;
+  border-radius: 0 0 24px 24px;
+  animation: fadeInDown 0.5s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background: var(--ion-color-wujo-primary);
-  color: white;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  margin-bottom: 24px;
 }
+
 .menu-icon,
 .notification-icon {
   font-size: 24px;
   color: white;
   cursor: pointer;
 }
-.page-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-  flex-grow: 1;
-  text-align: center;
-  margin-left: 20px;
-  margin-right: 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+
 .notification-container {
   position: relative;
-  width: 24px;
-  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
+
 .notification-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -8px;
+  right: -8px;
   font-size: 10px;
-  padding: 3px 5px;
-  border-radius: 10px;
-  --background: var(--ion-color-danger, #eb445a);
-  color: white;
-  z-index: 1;
+  min-width: 18px;
+  height: 18px;
 }
 
-/* --- Collector Tab Bar Styles (Reference) --- */
-collector-tab-bar {
-  display: block;
-  margin-bottom: 20px; /* Space below the tab bar */
-}
-
-/* --- Main Profile Content Area --- */
-.profile-content {
-  padding: 0 20px; /* Horizontal padding */
-  padding-bottom: 40px; /* Bottom padding */
-  /* Center the content if it's narrower than the screen */
+.hero-content {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center items horizontally */
-}
-
-/* --- Loading, Error, Empty States (Reused) --- */
-.loading-indicator,
-.error-message,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 200px;
   text-align: center;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--ion-color-medium-aquamarine, #5fd9ac);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(95, 217, 172, 0.3);
+}
+
+.avatar-image {
   width: 100%;
-}
-.error-message p,
-.empty-state ion-text {
-  color: var(--ion-color-wujo-text-grey);
-  margin-top: 10px;
-}
-.loading-indicator ion-spinner {
-  width: 30px;
-  height: 30px;
-  --color: var(--ion-color-wujo-primary);
+  height: 100%;
+  object-fit: cover;
 }
 
-/* --- Profile Card Container (The main white block) --- */
-.profile-card {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  padding: 30px 20px 0; /* Top padding is larger, bottom 0 before stats row */
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Center content horizontally */
-  text-align: center;
-  width: 100%; /* Take full width within parent padding */
-  max-width: 400px; /* Limit max width for a card-like appearance */
+.collector-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 8px 0;
 }
 
-/* --- Profile Image --- */
-.profile-image-container {
-  width: 100px; /* Container size */
-  height: 100px;
-  border-radius: 50%; /* Make it circular */
-  background: var(
-    --ion-color-wujo-light-grey
-  ); /* Background if image doesn't fill */
-  overflow: hidden; /* Clip image to circle */
-  margin-bottom: 20px; /* Space below image */
+.collector-phone {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 12px 0;
+}
+
+.join-date {
   display: flex;
-  justify-content: center;
   align-items: center;
-  border: 2px solid var(--ion-color-wujo-primary); /* Green border */
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  margin-bottom: 20px;
 }
 
-.profile-image {
-  display: block; /* Ensure it's a block element */
-  width: 100%; /* Make image fill container */
-  height: 100%; /* Make image fill container */
-  object-fit: cover; /* Cover the area, cropping if necessary */
-}
-
-/* --- Name and Phone --- */
-.profile-name {
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey);
-  margin-bottom: 5px; /* Space below name */
-}
-
-.profile-phone {
-  font-size: 15px;
-  color: var(--ion-color-wujo-text-grey);
-  margin-bottom: 20px; /* Space below phone before button */
-}
-
-/* --- Edit Profile Button --- */
 .edit-profile-button {
-  --background: var(--ion-color-wujo-primary); /* Green background */
-  --background-activated: var(--ion-color-wujo-primary);
-  --border-radius: 12px;
-  font-weight: bold;
-  color: white;
-  text-transform: capitalize;
-  height: 45px; /* Adjust height */
-  width: 100%; /* Take full width within card padding */
-  margin-bottom: 30px; /* Space below button before stats */
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --background-activated: #4bc99a;
+  --color: var(--ion-color-dark-green, #014023);
+  --border-radius: 16px;
+  --box-shadow: 0 8px 24px rgba(95, 217, 172, 0.35);
+  height: 56px;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: none;
+  width: 100%;
+  max-width: 300px;
 }
 
-.logout-profile-button {
-  --background: #ff0000; /* Green background */
-  --background-activated: var(--ion-color-wujo-primary);
-  --border-radius: 12px;
-  font-weight: bold;
-  color: white;
-  text-transform: capitalize;
-  height: 45px; /* Adjust height */
-  width: 100%; /* Take full width within card padding */
-  margin-bottom: 30px; /* Space below button before stats */
+/* Main Content */
+.profile-content {
+  padding: 16px;
+  padding-bottom: 100px;
+  /* Account for tab bar */
 }
 
-/* --- Summary Stats Row --- */
-.stats-row {
-  background: var(--ion-color-wujo-light-grey); /* Light grey background */
-  padding: 15px 10px; /* Vertical and horizontal padding */
-  border-bottom-left-radius: 10px; /* Match card radius */
-  border-bottom-right-radius: 10px;
-  width: 100%; /* Span full width of the card */
-  display: grid; /* Use grid for flexible layout */
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(80px, 1fr)
-  ); /* Responsive columns */
-  gap: 10px; /* Space between stats items */
-  text-align: center; /* Center text within grid cells */
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ion-color-dark-green, #014023);
+  margin: 24px 0 16px 0;
 }
 
-.stat-item {
+/* Statistics Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
-  flex-direction: column; /* Stack value and label */
-  align-items: center; /* Center content */
-  padding: 0 5px; /* Add some internal padding */
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.stat-icon.create {
+  background: rgba(95, 217, 172, 0.1);
+  color: var(--ion-color-medium-aquamarine, #5fd9ac);
+}
+
+.stat-icon.members {
+  background: rgba(1, 64, 35, 0.1);
+  color: var(--ion-color-dark-green, #014023);
+}
+
+.stat-icon.cash {
+  background: rgba(255, 165, 0, 0.1);
+  color: #ffa500;
+}
+
+.stat-icon.complete {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.stat-info {
+  overflow: hidden;
 }
 
 .stat-value {
   font-size: 18px;
-  font-weight: bold;
-  color: var(--ion-color-wujo-dark-grey);
-  margin-bottom: 3px; /* Space below value */
+  font-weight: 700;
+  color: var(--ion-color-dark-green, #014023);
+  margin: 0 0 4px 0;
 }
 
 .stat-label {
   font-size: 12px;
-  color: var(--ion-color-wujo-text-grey);
+  color: #666;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Created Iqubs List */
+.iqubs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.iqub-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.iqub-card:active {
+  transform: scale(0.98);
+}
+
+.iqub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.iqub-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ion-color-dark-green, #014023);
+  margin: 0;
+}
+
+.iqub-details {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  border-radius: 3px;
+}
+
+.progress-text {
+  font-size: 10px;
+  color: #999;
+  display: block;
+  text-align: right;
+}
+
+/* Settings List */
+.settings-list {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #666;
+  margin-right: 16px;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.setting-subtitle {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+}
+
+.setting-arrow {
+  color: #ccc;
+  font-size: 20px;
+}
+
+.logout-item .setting-icon {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--ion-color-danger, #eb445a);
+}
+
+.logout-item .setting-title {
+  color: var(--ion-color-danger, #eb445a);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.empty-state ion-icon {
+  font-size: 48px;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.current-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--ion-color-medium-aquamarine, #5fd9ac);
+}
+
+.current-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.error-text {
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.save-button {
+  --background: var(--ion-color-medium-aquamarine, #5fd9ac);
+  --color: var(--ion-color-dark-green, #014023);
+  font-weight: 700;
 }
 </style>
