@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { IonIcon, IonButton } from "@ionic/vue";
 import { calendarOutline, peopleOutline, cashOutline } from "ionicons/icons";
@@ -56,6 +56,15 @@ interface Props {
 // eslint-disable-next-line no-undef
 const props = defineProps<Props>();
 const router = useRouter();
+
+// Log the iqub data to debug
+onMounted(() => {
+  console.log("MemberIqubCard received iqub data:", props.iqub);
+  console.log("Saving amount:", props.iqub.saving_amount);
+  console.log("Total collected:", props.iqub.total_collected);
+  console.log("Members count:", props.iqub.members_count);
+  console.log("Current members:", props.iqub.current_members);
+});
 
 const statusClass = computed(() => {
   const status = props.iqub.status?.toLowerCase() || "active";
@@ -74,16 +83,47 @@ const savingAmount = computed(() => {
 });
 
 const currentAmount = computed(() => {
-  const total =
-    typeof props.iqub.total_collected === "string"
-      ? parseFloat(props.iqub.total_collected)
-      : props.iqub.total_collected || 0;
-  return total;
+  // First try to use total_collected if available
+  if (
+    props.iqub.total_collected !== undefined &&
+    props.iqub.total_collected !== null
+  ) {
+    const total =
+      typeof props.iqub.total_collected === "string"
+        ? parseFloat(props.iqub.total_collected)
+        : props.iqub.total_collected || 0;
+    return total;
+  }
+
+  // If not available, calculate from saving_rounds (e.g., "1/9" means 1 round completed)
+  if (props.iqub.saving_rounds) {
+    const rounds = props.iqub.saving_rounds.toString().split("/");
+    if (rounds.length === 2) {
+      const completedRounds = parseInt(rounds[0]) || 0;
+      const membersCount =
+        props.iqub.members_count || props.iqub.current_members || 1;
+      // Total collected = completed rounds * saving amount per round * number of members
+      return completedRounds * savingAmount.value * membersCount;
+    }
+  }
+
+  return 0;
 });
 
 const targetAmount = computed(() => {
   const membersCount =
     props.iqub.members_count || props.iqub.current_members || 1;
+
+  // If we have saving_rounds, use total rounds from there
+  if (props.iqub.saving_rounds) {
+    const rounds = props.iqub.saving_rounds.toString().split("/");
+    if (rounds.length === 2) {
+      const totalRounds = parseInt(rounds[1]) || 1;
+      return savingAmount.value * membersCount * totalRounds;
+    }
+  }
+
+  // Otherwise use a simple calculation
   return savingAmount.value * membersCount;
 });
 

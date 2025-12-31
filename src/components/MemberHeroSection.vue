@@ -14,11 +14,70 @@
       </div>
       <h1 class="member-name">{{ member.name }}</h1>
       <p class="member-phone">{{ member.phone }}</p>
+      <div v-if="member.contributionType" class="contribution-badge">
+        <ion-icon :icon="ribbonOutline" />
+        <span
+          >{{
+            member.contributionType === "full" ? "Full" : "Half"
+          }}
+          Contributor</span
+        >
+      </div>
+    </div>
+
+    <!-- Credit Round Progress Card -->
+    <div v-if="currentCreditRound" class="credit-round-card">
+      <div class="credit-round-header">
+        <h3 class="credit-round-title">Current Credit Round</h3>
+        <div
+          v-if="currentCreditRound.member_progress.is_complete"
+          class="completion-badge"
+        >
+          <ion-icon :icon="checkmarkCircle" />
+          <span>Complete</span>
+        </div>
+      </div>
+      <div class="credit-round-info">
+        <div class="info-item">
+          <span class="info-label">Credit Round</span>
+          <span class="info-value">
+            {{ currentCreditRound.credit_round_number }} of
+            {{ currentCreditRound.total_credit_rounds }}
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Saving Rounds</span>
+          <span class="info-value">
+            {{ currentCreditRound.saving_round_range.start }}-{{
+              currentCreditRound.saving_round_range.end
+            }}
+          </span>
+        </div>
+      </div>
+      <div class="credit-round-progress">
+        <div class="progress-bar-container">
+          <div
+            class="progress-bar-fill"
+            :style="{
+              width: `${
+                (currentCreditRound.member_progress.completed_saving_rounds /
+                  currentCreditRound.member_progress.required_saving_rounds) *
+                100
+              }%`,
+            }"
+          />
+        </div>
+        <p class="progress-text">
+          {{ currentCreditRound.member_progress.completed_saving_rounds }} of
+          {{ currentCreditRound.member_progress.required_saving_rounds }} rounds
+          completed
+        </p>
+      </div>
     </div>
 
     <div class="stats-container">
       <div class="stat-card">
-        <p class="stat-label">Current Round</p>
+        <p class="stat-label">Overall Progress</p>
         <p class="stat-value">
           {{ paymentStats.currentRound }}/{{ paymentStats.totalRounds }}
         </p>
@@ -40,7 +99,13 @@
 <script setup lang="ts">
 /* eslint-disable no-undef */
 import { IonButton, IonIcon } from "@ionic/vue";
-import { arrowBack, notificationsOutline, personCircle } from "ionicons/icons";
+import {
+  arrowBack,
+  notificationsOutline,
+  personCircle,
+  ribbonOutline,
+  checkmarkCircle,
+} from "ionicons/icons";
 import ProgressRing from "./ProgressRing.vue";
 
 interface MemberHeroProps {
@@ -50,6 +115,7 @@ interface MemberHeroProps {
     phone: string;
     avatar?: string;
     joinDate: string;
+    contributionType?: "full" | "half";
   };
   paymentStats: {
     currentRound: number;
@@ -57,6 +123,20 @@ interface MemberHeroProps {
     paidAmount: number;
     totalExpected: number;
     completionPercentage: number;
+  };
+  currentCreditRound?: {
+    credit_round_number: number;
+    saving_round_range: {
+      start: number;
+      end: number;
+    };
+    total_credit_rounds: number;
+    saving_rounds_per_credit_round: number;
+    member_progress: {
+      completed_saving_rounds: number;
+      required_saving_rounds: number;
+      is_complete: boolean;
+    };
   };
 }
 
@@ -147,7 +227,117 @@ const handleBack = () => {
   font-size: var(--wujo-font-size-body);
   line-height: var(--wujo-line-height-normal);
   opacity: 0.9;
+  margin: 0 0 8px 0;
+}
+
+.contribution-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: var(--wujo-font-size-caption);
+  font-weight: var(--wujo-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contribution-badge ion-icon {
+  font-size: 16px;
+}
+
+/* Credit Round Card */
+.credit-round-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.credit-round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.credit-round-title {
+  font-size: var(--wujo-font-size-body);
+  font-weight: var(--wujo-font-weight-semibold);
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+
+.completion-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(95, 217, 172, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: var(--wujo-font-size-caption);
+  font-weight: var(--wujo-font-weight-semibold);
+}
+
+.completion-badge ion-icon {
+  font-size: 16px;
+}
+
+.credit-round-info {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.info-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: var(--wujo-font-size-caption);
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: var(--wujo-font-size-body);
+  font-weight: var(--wujo-font-weight-bold);
+}
+
+.credit-round-progress {
+  margin-top: 12px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5fd9ac, #8feccc);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: var(--wujo-font-size-caption);
+  opacity: 0.9;
+  margin: 0;
+  text-align: center;
 }
 
 .stats-container {

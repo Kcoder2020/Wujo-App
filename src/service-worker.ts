@@ -10,12 +10,51 @@ declare function postMessage(message: any): void;
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
+// Cache name for PWA assets
+const CACHE_NAME = "wujo-app-v1";
+
 sw.addEventListener("install", (event: ExtendableEvent) => {
   console.log("Service Worker installing.");
+  // Skip waiting to activate immediately
+  sw.skipWaiting();
 });
 
 sw.addEventListener("activate", (event: ExtendableEvent) => {
   console.log("Service Worker activating.");
+  // Claim all clients immediately
+  event.waitUntil(sw.clients.claim());
+});
+
+// Fetch event handler - required for PWA installability
+sw.addEventListener("fetch", (event: FetchEvent) => {
+  // Network-first strategy for API calls
+  if (event.request.url.includes("/api/")) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response(JSON.stringify({ error: "Offline" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      })
+    );
+    return;
+  }
+
+  // Cache-first strategy for static assets
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(event.request).then((response) => {
+        // Don't cache non-successful responses
+        if (!response || response.status !== 200 || response.type !== "basic") {
+          return response;
+        }
+        return response;
+      });
+    })
+  );
 });
 
 sw.addEventListener("sync", (event: any) => {

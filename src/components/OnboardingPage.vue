@@ -171,7 +171,7 @@ const next = () => {
 const skip = () => {
   // Navigate to signup page
   // router.push("/signup"); // Or maybe '/login' or a home page? Adjust as needed.
-  ionRouter.push("/notifications", "forward", "none");
+  ionRouter.push("/signup", "forward", "none");
 };
 
 const getStarted = () => {

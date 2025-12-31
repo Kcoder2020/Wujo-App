@@ -1,5 +1,5 @@
 <template>
-  <div class="savings-progress-ring">
+  <div class="savings-progress-ring" :class="`theme-${theme}`">
     <svg :width="size" :height="size" class="progress-svg">
       <!-- Background circle -->
       <circle
@@ -9,7 +9,9 @@
         :r="radius"
         :stroke-width="strokeWidth"
         fill="none"
-        stroke="rgba(1, 64, 35, 0.1)"
+        :stroke="
+          theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(1, 64, 35, 0.1)'
+        "
       />
       <!-- Progress circle -->
       <circle
@@ -26,7 +28,7 @@
       />
     </svg>
     <div class="progress-content">
-      <span class="percentage">{{ Math.round(percentage) }}%</span>
+      <span class="percentage">{{ Math.round(safePercentage) }}%</span>
       <span class="amount">{{ formatCurrency(current) }}</span>
       <span class="target">of {{ formatCurrency(target) }}</span>
     </div>
@@ -37,24 +39,37 @@
 import { computed } from "vue";
 
 interface Props {
-  percentage: number;
+  percentage: number | null;
   current: number;
   target: number;
   size?: number;
   strokeWidth?: number;
+  theme?: "light" | "dark";
 }
 
 // eslint-disable-next-line no-undef
 const props = withDefaults(defineProps<Props>(), {
   size: 120,
   strokeWidth: 8,
+  theme: "light",
+});
+
+const safePercentage = computed(() => {
+  if (
+    props.percentage === null ||
+    props.percentage === undefined ||
+    isNaN(props.percentage)
+  ) {
+    return 0;
+  }
+  return props.percentage;
 });
 
 const center = computed(() => props.size / 2);
 const radius = computed(() => (props.size - props.strokeWidth) / 2);
 const circumference = computed(() => 2 * Math.PI * radius.value);
 const dashOffset = computed(() => {
-  const progress = Math.min(Math.max(props.percentage, 0), 100);
+  const progress = Math.min(Math.max(safePercentage.value, 0), 100);
   return circumference.value - (progress / 100) * circumference.value;
 });
 
@@ -115,5 +130,15 @@ const formatCurrency = (amount: number): string => {
   font-weight: 400;
   color: #666;
   line-height: 1.2;
+}
+
+/* Dark Theme Styles */
+.theme-dark .percentage,
+.theme-dark .amount {
+  color: white;
+}
+
+.theme-dark .target {
+  color: rgba(255, 255, 255, 0.7);
 }
 </style>

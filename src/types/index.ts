@@ -5,6 +5,7 @@ export interface AppState {
 }
 
 export interface Iqub {
+  half_contributors: number;
   id: number | string; // Support both numeric IDs and MongoDB ObjectId strings
   name: string;
   collector_id: number;
@@ -23,6 +24,14 @@ export interface Iqub {
   hosted_lottery?: string;
   total_collected?: string | number;
   next_lottery_date?: string | null;
+  saving_rounds?: string; // Format: "completed/total" e.g., "1/9"
+  // New fields from backend API updates
+  effective_members?: number;
+  credit_round?: number;
+  saving_round?: number;
+  saving_rounds_per_credit_round?: number;
+  completed_saving_rounds?: number;
+  completed_credit_rounds?: number;
 }
 
 export interface Member {
@@ -124,3 +133,131 @@ export interface TabItemConfig {
   roles: UserRole[]; // Access control
   badge?: () => number; // Optional reactive badge count
 }
+
+// ** Member Iqub Details Types **
+export interface MemberIqubDetails {
+  iqub: {
+    id: string;
+    name: string;
+    saving_amount: number;
+    credit_amount: number;
+    members_count: number;
+    half_contributors: number;
+    effective_members: number;
+    current_members: number;
+    status: "active" | "completed" | "pending";
+    next_lottery_date: string | null;
+  };
+  member: {
+    id: string;
+    name: string;
+    phone: string;
+    avatar: string | null;
+    contribution_type: "full" | "half";
+    join_date: string;
+    saving_rounds: number;
+    has_won: boolean;
+  };
+  current_credit_round: {
+    credit_round_number: number;
+    saving_round_range: {
+      start: number;
+      end: number;
+    };
+    total_credit_rounds: number;
+    saving_rounds_per_credit_round: number;
+    member_progress: {
+      completed_saving_rounds: number;
+      required_saving_rounds: number;
+      is_complete: boolean;
+    };
+  };
+  stats: {
+    total_saved: number;
+    current_round: number;
+    total_rounds: number;
+    completion_percentage: number;
+    lottery_position: number;
+  };
+  payment_history: RoundPaymentDetails[];
+}
+
+export interface RoundPaymentDetails {
+  round_number: number;
+  amount: number;
+  payment_method: "chapa" | "manual" | null;
+  status:
+    | "success"
+    | "pending"
+    | "failed"
+    | "pending_verification"
+    | "due"
+    | "upcoming";
+  paid_at: string | null;
+  chapa_tx_ref: string | null;
+  receipt_urls?: string[];
+  due_date?: string;
+}
+
+export interface PaymentInitiationResponse {
+  success: boolean;
+  data: {
+    checkout_url: string;
+    tx_ref: string;
+  };
+}
+
+export interface PaymentStatusResponse {
+  success: boolean;
+  data: {
+    status: "success" | "failed" | "not_found";
+    amount?: number;
+    currency?: string;
+    reference?: string;
+  };
+}
+
+// ** Collector Dashboard Types **
+export interface CollectorDashboardOverview {
+  total_collected: number;
+  total_members: number;
+  total_iqubs: number;
+  hosted_lotteries: number;
+}
+
+export interface DashboardActivity {
+  id: number;
+  type: "lottery" | "payment" | "member" | "iqub_created";
+  title: string;
+  description: string;
+  timestamp: string; // ISO 8601 format
+}
+
+export interface MonthlyCollectionData {
+  month: string; // e.g., "Jan", "Feb", "Mar"
+  amount: number;
+  target?: number; // Optional target for that month
+}
+
+export interface MonthlyCollections {
+  period: "1month" | "3months" | "6months";
+  data: MonthlyCollectionData[];
+}
+
+export interface CollectorDashboardData {
+  overview: CollectorDashboardOverview;
+  recent_activities: DashboardActivity[];
+  monthly_collections: MonthlyCollections;
+}
+
+// Export Credit Round types (excluding LotteryWinnerInfo to avoid conflict with lottery.ts)
+export {
+  CreditRoundStatus,
+  CreditRoundMember,
+  SavingRoundStatus,
+  LotteryCreditRound,
+  LotteryCreditRoundsResponse,
+} from "./creditRound";
+
+// Export Lottery types
+export * from "./lottery";

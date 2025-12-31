@@ -25,10 +25,14 @@
         <p class="notes-text">{{ request.memberNotes }}</p>
       </div>
 
-      <div class="receipt-preview" @click="handleReceiptClick">
+      <div
+        v-if="hasReceipts"
+        class="receipt-preview"
+        @click="handleReceiptClick"
+      >
         <img
-          v-if="request.receiptUrls[0]"
-          :src="request.receiptUrls[0]"
+          v-if="firstReceiptUrl"
+          :src="firstReceiptUrl"
           alt="Receipt preview"
           class="receipt-thumbnail"
         />
@@ -63,6 +67,7 @@
 
 <script setup lang="ts">
 /* eslint-disable no-undef */
+import { computed } from "vue";
 import { IonButton, IonIcon } from "@ionic/vue";
 import {
   alertCircleOutline,
@@ -90,6 +95,19 @@ const emit = defineEmits<{
   (e: "receiptClick", receiptUrls: string[]): void;
 }>();
 
+// Computed properties for safe receipt URL access
+const hasReceipts = computed(() => {
+  return (
+    props.request.receiptUrls &&
+    Array.isArray(props.request.receiptUrls) &&
+    props.request.receiptUrls.length > 0
+  );
+});
+
+const firstReceiptUrl = computed(() => {
+  return hasReceipts.value ? props.request.receiptUrls[0] : null;
+});
+
 const formatDate = (date: string) => {
   return new Date(date).toLocaleDateString("en-US", {
     month: "short",
@@ -103,7 +121,9 @@ const formatCurrency = (amount: number) => {
 };
 
 const handleReceiptClick = () => {
-  emit("receiptClick", props.request.receiptUrls);
+  if (hasReceipts.value) {
+    emit("receiptClick", props.request.receiptUrls);
+  }
 };
 
 const handleApprove = () => {

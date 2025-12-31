@@ -1,5 +1,15 @@
 import apiService from "../../services/apiService"; // Adjust the path as needed
-import { Iqub, Member, PaymentRound } from "../../types"; // Adjust the path as needed
+import {
+  Iqub,
+  Member,
+  PaymentRound,
+  CreditRoundStatus,
+  CollectorDashboardData,
+  LotteryRecord,
+  LotteryResult,
+  LotteryFetchStatus,
+  LotteryCreditRoundsResponse,
+} from "../../types"; // Adjust the path as needed
 import router from "../../router"; // Needed for navigation on unauthorized access
 import { Commit } from "vuex";
 
@@ -24,9 +34,23 @@ interface IqubState {
   paymentRoundDetailsStatus: FetchStatus; // Status for fetching single round details
   paymentRoundDetailsError: string | null;
   // Dashboard data
-  dashboardData: any | null;
+  dashboardData: CollectorDashboardData | null;
   dashboardStatus: FetchStatus;
   dashboardError: string | null;
+  // Credit Round Status
+  creditRoundStatus: CreditRoundStatus | null;
+  creditRoundStatusLoading: boolean;
+  creditRoundStatusError: string | null;
+  // Lottery State
+  lotteryHistory: LotteryRecord[];
+  lotteryHistoryStatus: LotteryFetchStatus;
+  lotteryHistoryError: string | null;
+  currentLotteryResult: LotteryResult | null;
+  isInitiatingLottery: boolean;
+  // Lottery Credit Rounds (all credit rounds for lottery view)
+  lotteryCreditRounds: LotteryCreditRoundsResponse | null;
+  lotteryCreditRoundsStatus: FetchStatus;
+  lotteryCreditRoundsError: string | null;
 }
 
 const state: IqubState = {
@@ -44,6 +68,19 @@ const state: IqubState = {
   dashboardData: null,
   dashboardStatus: "idle",
   dashboardError: null,
+  creditRoundStatus: null,
+  creditRoundStatusLoading: false,
+  creditRoundStatusError: null,
+  // Lottery State
+  lotteryHistory: [],
+  lotteryHistoryStatus: "idle",
+  lotteryHistoryError: null,
+  currentLotteryResult: null,
+  isInitiatingLottery: false,
+  // Lottery Credit Rounds (all credit rounds for lottery view)
+  lotteryCreditRounds: null,
+  lotteryCreditRoundsStatus: "idle",
+  lotteryCreditRoundsError: null,
 };
 
 const mutations = {
@@ -153,7 +190,7 @@ const mutations = {
   //    if (round) round.is_checked = isChecked;
   // }
   // Dashboard mutations
-  setDashboardData(state: IqubState, data: any) {
+  setDashboardData(state: IqubState, data: CollectorDashboardData) {
     state.dashboardData = data;
   },
   setDashboardStatus(state: IqubState, status: FetchStatus) {
@@ -161,6 +198,67 @@ const mutations = {
   },
   setDashboardError(state: IqubState, error: string | null) {
     state.dashboardError = error;
+  },
+  updateMonthlyCollections(state: IqubState, monthlyCollections: any) {
+    if (state.dashboardData) {
+      state.dashboardData.monthly_collections = monthlyCollections;
+    }
+  },
+  // Credit Round Status mutations
+  setCreditRoundStatus(state: IqubState, status: CreditRoundStatus | null) {
+    state.creditRoundStatus = status;
+  },
+  setCreditRoundStatusLoading(state: IqubState, loading: boolean) {
+    state.creditRoundStatusLoading = loading;
+  },
+  setCreditRoundStatusError(state: IqubState, error: string | null) {
+    state.creditRoundStatusError = error;
+  },
+  clearCreditRoundStatus(state: IqubState) {
+    state.creditRoundStatus = null;
+    state.creditRoundStatusLoading = false;
+    state.creditRoundStatusError = null;
+  },
+  // Lottery Mutations
+  setLotteryHistory(state: IqubState, history: LotteryRecord[]) {
+    state.lotteryHistory = history;
+  },
+  setLotteryHistoryStatus(state: IqubState, status: LotteryFetchStatus) {
+    state.lotteryHistoryStatus = status;
+  },
+  setLotteryHistoryError(state: IqubState, error: string | null) {
+    state.lotteryHistoryError = error;
+  },
+  setCurrentLotteryResult(state: IqubState, result: LotteryResult | null) {
+    state.currentLotteryResult = result;
+  },
+  setIsInitiatingLottery(state: IqubState, isInitiating: boolean) {
+    state.isInitiatingLottery = isInitiating;
+  },
+  clearLotteryState(state: IqubState) {
+    state.lotteryHistory = [];
+    state.lotteryHistoryStatus = "idle";
+    state.lotteryHistoryError = null;
+    state.currentLotteryResult = null;
+    state.isInitiatingLottery = false;
+  },
+  // Lottery Credit Rounds Mutations
+  setLotteryCreditRounds(
+    state: IqubState,
+    data: LotteryCreditRoundsResponse | null
+  ) {
+    state.lotteryCreditRounds = data;
+  },
+  setLotteryCreditRoundsStatus(state: IqubState, status: FetchStatus) {
+    state.lotteryCreditRoundsStatus = status;
+  },
+  setLotteryCreditRoundsError(state: IqubState, error: string | null) {
+    state.lotteryCreditRoundsError = error;
+  },
+  clearLotteryCreditRounds(state: IqubState) {
+    state.lotteryCreditRounds = null;
+    state.lotteryCreditRoundsStatus = "idle";
+    state.lotteryCreditRoundsError = null;
   },
 };
 
@@ -183,6 +281,7 @@ const actions = {
       console.log("User iqubs fetched:", response.data);
       if (response.data && Array.isArray(response.data.data)) {
         commit("setIqubs", response.data.data);
+        console.log("Collector Iqubs ", response.data.data);
         commit("setStatus", "success");
       } else {
         console.error(
@@ -294,7 +393,11 @@ const actions = {
 
   async addMemberToIqub(
     { commit, dispatch }: { commit: Commit; dispatch: any },
-    { iqubId, phone }: { iqubId: number; phone: string }
+    {
+      iqubId,
+      phone,
+      contributionType = "full",
+    }: { iqubId: number; phone: string; contributionType?: "full" | "half" }
   ) {
     // You might set a dedicated status for this operation
     // commit('setAddMemberStatus', 'loading');
@@ -309,7 +412,7 @@ const actions = {
       // Assuming API endpoint is POST /iqubs/{id}/members
       const response = await apiService.post(
         `/iqubs/${iqubId}/members`,
-        { phone },
+        { phone, contributionType },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -342,42 +445,35 @@ const actions = {
   },
 
   async initiateLottery(
-    { commit, dispatch }: { commit: Commit; dispatch: any },
-    iqubId: number
+    { commit }: { commit: Commit },
+    {
+      iqubId,
+      creditRoundNumber,
+    }: { iqubId: string | number; creditRoundNumber: number }
   ) {
-    // Dedicated status/error or main status
-    commit("setStatus", "loading");
-    commit("setError", null);
+    // Note: We intentionally do NOT dispatch fetchIqubDetails or fetchLotteryCreditRounds here
+    // to avoid causing parent component re-renders during the lottery animation.
+    // The parent should refresh data when the lottery modal closes.
 
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication token not found.");
-      // Assuming API endpoint is POST /iqubs/{id}/lottery/initiate
+      // API endpoint is POST /iqubs/{id}/lottery/initiate with credit_round_number in body
       const response = await apiService.post(
         `/iqubs/${iqubId}/lottery/initiate`,
-        {},
+        { credit_round_number: creditRoundNumber },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log(`Lottery initiated for Iqub ${iqubId}:`, response.data);
-
-      // Assuming API response includes the winner or confirmation
-      // If API returns winner, you can update locally
-      // commit('updateIqubLotteryWinner', { iqubId, winnerName: response.data.winner });
-      // Refetch iqub details to get the latest state including winner/status
-      dispatch("fetchIqubDetails", iqubId);
-      commit("setStatus", "success"); // Update status on success
+      console.log(
+        `Lottery initiated for Iqub ${iqubId}, Credit Round ${creditRoundNumber}:`,
+        response.data
+      );
 
       return response.data;
     } catch (error: any) {
       console.error(`Failed to initiate lottery for Iqub ${iqubId}:`, error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to initiate lottery.";
-      commit("setError", errorMessage);
-      commit("setStatus", "error"); // Update status on error
       throw error;
     }
   },
@@ -564,6 +660,49 @@ const actions = {
       commit("setStatus", "error");
     }
   },
+
+  // **ADD action to fetch Credit Round Status**
+  async fetchCreditRoundStatus(
+    { commit }: { commit: Commit },
+    iqubId: string | number
+  ) {
+    commit("setCreditRoundStatusLoading", true);
+    commit("setCreditRoundStatusError", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      const response = await apiService.get(
+        `/iqubs/${iqubId}/credit-round-status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log(
+        `Credit round status for Iqub ${iqubId} fetched:`,
+        response.data
+      );
+
+      if (response.data && response.data.success) {
+        commit("setCreditRoundStatus", response.data.data);
+        commit("setCreditRoundStatusLoading", false);
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error(
+        `Failed to fetch credit round status for Iqub ${iqubId}:`,
+        error
+      );
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch credit round status";
+      commit("setCreditRoundStatusError", errorMessage);
+      commit("setCreditRoundStatusLoading", false);
+      throw error;
+    }
+  },
   // **ADD action to Verify a payment round (corresponds to Page 13)**
   // This action might take the round ID or payment ID and the verification decision (approve/deny)
   async verifyPaymentRound(
@@ -625,8 +764,235 @@ const actions = {
       throw error; // Re-throw to allow component to catch
     }
   },
-};
 
+  // **Dashboard Actions**
+  async fetchCollectorDashboard({ commit }: { commit: Commit }) {
+    commit("setDashboardStatus", "loading");
+    commit("setDashboardError", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      const response = await apiService.get("/collector/dashboard", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("Collector dashboard data fetched:", response.data);
+
+      // Backend wraps response in "data" property
+      if (response.data && response.data.data && response.data.data.overview) {
+        commit("setDashboardData", response.data.data);
+        commit("setDashboardStatus", "success");
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch collector dashboard:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch dashboard data";
+      commit("setDashboardError", errorMessage);
+      commit("setDashboardStatus", "error");
+      throw error;
+    }
+  },
+
+  async fetchMonthlyCollections(
+    { commit, state }: { commit: Commit; state: IqubState },
+    period: "1month" | "3months" | "6months"
+  ) {
+    commit("setDashboardStatus", "loading");
+    commit("setDashboardError", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      // Backend supports period query parameter
+      const response = await apiService.get(
+        `/collector/dashboard?period=${period}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log(`Dashboard data for ${period} fetched:`, response.data);
+
+      // Backend wraps response in "data" property
+      if (response.data && response.data.data && response.data.data.overview) {
+        commit("setDashboardData", response.data.data);
+        commit("setDashboardStatus", "success");
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error(`Failed to fetch dashboard for ${period}:`, error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch dashboard data";
+      commit("setDashboardError", errorMessage);
+      commit("setDashboardStatus", "error");
+      throw error;
+    }
+  },
+
+  // Lottery Actions
+  async fetchLotteryHistory(
+    { commit }: { commit: Commit },
+    iqubId: string | number
+  ) {
+    commit("setLotteryHistoryStatus", "loading");
+    commit("setLotteryHistoryError", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      const response = await apiService.get(
+        `/iqubs/${iqubId}/lottery/history`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log(`Lottery history for Iqub ${iqubId} fetched:`, response.data);
+
+      if (response.data && response.data.success) {
+        commit("setLotteryHistory", response.data.data || []);
+        commit("setLotteryHistoryStatus", "success");
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error(
+        `Failed to fetch lottery history for Iqub ${iqubId}:`,
+        error
+      );
+
+      // Handle 404 gracefully - endpoint may not exist yet
+      if (error.response?.status === 404) {
+        console.warn(
+          "Lottery history endpoint not implemented yet, using empty array"
+        );
+        commit("setLotteryHistory", []);
+        commit("setLotteryHistoryStatus", "success");
+        return;
+      }
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch lottery history";
+      commit("setLotteryHistoryError", errorMessage);
+      commit("setLotteryHistoryStatus", "error");
+      throw error;
+    }
+  },
+
+  async initiateLotteryWithSpin(
+    { commit, dispatch }: { commit: Commit; dispatch: any },
+    {
+      iqubId,
+      creditRoundNumber,
+    }: { iqubId: string | number; creditRoundNumber: number }
+  ) {
+    commit("setIsInitiatingLottery", true);
+    commit("setCurrentLotteryResult", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      const response = await apiService.post(
+        `/iqubs/${iqubId}/lottery/initiate`,
+        { credit_round_number: creditRoundNumber },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log(`Lottery initiated for Iqub ${iqubId}:`, response.data);
+
+      if (response.data && response.data.success) {
+        const result = {
+          success: true,
+          winner: response.data.data.winner || response.data.data.winners?.[0],
+          lottery_id: response.data.data.lottery_id,
+        };
+        commit("setCurrentLotteryResult", result);
+        commit("setIsInitiatingLottery", false);
+
+        // Refresh credit round status after lottery
+        dispatch("fetchCreditRoundStatus", iqubId);
+        // Refresh lottery history
+        dispatch("fetchLotteryHistory", iqubId);
+        // Refresh lottery credit rounds
+        dispatch("fetchLotteryCreditRounds", iqubId);
+
+        return response.data;
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error(`Failed to initiate lottery for Iqub ${iqubId}:`, error);
+      commit("setIsInitiatingLottery", false);
+      throw error;
+    }
+  },
+
+  // Fetch all credit rounds for lottery view
+  async fetchLotteryCreditRounds(
+    { commit }: { commit: Commit },
+    iqubId: string | number
+  ) {
+    commit("setLotteryCreditRoundsStatus", "loading");
+    commit("setLotteryCreditRoundsError", null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication token not found.");
+
+      const response = await apiService.get(
+        `/iqubs/${iqubId}/lottery/credit-rounds`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log(
+        `Lottery credit rounds for Iqub ${iqubId} fetched:`,
+        response.data
+      );
+
+      if (response.data && response.data.success) {
+        commit("setLotteryCreditRounds", response.data.data);
+        commit("setLotteryCreditRoundsStatus", "success");
+      } else {
+        throw new Error("Unexpected API response structure");
+      }
+    } catch (error: any) {
+      console.error(
+        `Failed to fetch lottery credit rounds for Iqub ${iqubId}:`,
+        error
+      );
+
+      // Handle 404 gracefully - endpoint may not exist yet
+      if (error.response?.status === 404) {
+        console.warn("Lottery credit rounds endpoint not implemented yet");
+        commit("setLotteryCreditRounds", null);
+        commit("setLotteryCreditRoundsStatus", "success");
+        return;
+      }
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch lottery credit rounds";
+      commit("setLotteryCreditRoundsError", errorMessage);
+      commit("setLotteryCreditRoundsStatus", "error");
+      throw error;
+    }
+  },
+};
 const getters = {
   iqubs: (state: IqubState) => state.iqubs,
   selectedIqub: (state: IqubState) => state.selectedIqub,
@@ -657,6 +1023,35 @@ const getters = {
   // addMemberError: (state: IqubState) => state.addMemberError,
   // initiateLotteryStatus: (state: IqubState) => state.initiateLotteryStatus,
   // initiateLotteryError: (state: IqubState) => state.initiateLotteryError,
+
+  // **ADD getters for Credit Round Status**
+  creditRoundStatus: (state: IqubState) => state.creditRoundStatus,
+  creditRoundStatusLoading: (state: IqubState) =>
+    state.creditRoundStatusLoading,
+  creditRoundStatusError: (state: IqubState) => state.creditRoundStatusError,
+
+  // **Dashboard getters**
+  dashboardData: (state: IqubState) => state.dashboardData,
+  dashboardStatus: (state: IqubState) => state.dashboardStatus,
+  dashboardError: (state: IqubState) => state.dashboardError,
+  dashboardOverview: (state: IqubState) => state.dashboardData?.overview,
+  dashboardActivities: (state: IqubState) =>
+    state.dashboardData?.recent_activities || [],
+  dashboardMonthlyCollections: (state: IqubState) =>
+    state.dashboardData?.monthly_collections?.data || [],
+
+  // **Lottery getters**
+  lotteryHistory: (state: IqubState) => state.lotteryHistory,
+  lotteryHistoryStatus: (state: IqubState) => state.lotteryHistoryStatus,
+  lotteryHistoryError: (state: IqubState) => state.lotteryHistoryError,
+  currentLotteryResult: (state: IqubState) => state.currentLotteryResult,
+  isInitiatingLottery: (state: IqubState) => state.isInitiatingLottery,
+  // Lottery Credit Rounds getters
+  lotteryCreditRounds: (state: IqubState) => state.lotteryCreditRounds,
+  lotteryCreditRoundsStatus: (state: IqubState) =>
+    state.lotteryCreditRoundsStatus,
+  lotteryCreditRoundsError: (state: IqubState) =>
+    state.lotteryCreditRoundsError,
 };
 
 export default {

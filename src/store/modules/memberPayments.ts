@@ -1,5 +1,6 @@
 import { Module } from "vuex";
 import api from "../../services/apiService"; // Adjust the path as needed
+import { transformMemberPaymentData } from "../../utils/dataTransform";
 
 interface MemberPaymentData {
   member: {
@@ -9,11 +10,30 @@ interface MemberPaymentData {
     phone: string;
     avatar?: string;
     join_date: string;
+    contribution_type: "full" | "half";
+    saving_rounds: number;
+    has_won: boolean;
   };
   iqub: {
     id: string;
     name: string;
     total_rounds: number;
+    credit_round: number;
+    saving_rounds_per_credit_round: number;
+  };
+  current_credit_round: {
+    credit_round_number: number;
+    saving_round_range: {
+      start: number;
+      end: number;
+    };
+    total_credit_rounds: number;
+    saving_rounds_per_credit_round: number;
+    member_progress: {
+      completed_saving_rounds: number;
+      required_saving_rounds: number;
+      is_complete: boolean;
+    };
   };
   payment_stats: {
     current_round: number;
@@ -30,13 +50,15 @@ interface PaymentRecord {
   round_number: number;
   amount: number;
   payment_date: string;
-  due_date: string;
-  payment_method: "mobile_money" | "bank_transfer" | "cash" | "manual";
-  status: "paid" | "pending" | "overdue" | "verified";
-  verification_status?: "pending" | "verified" | "rejected" | null;
-  receipt_urls?: string[];
-  verification_date?: string;
-  collector_notes?: string;
+  payment_method:
+    | "mobile_money"
+    | "bank_transfer"
+    | "cash"
+    | "manual"
+    | "chapa";
+  status: "success" | "pending" | "failed";
+  chapa_tx_ref: string | null;
+  verification_id: string | null;
 }
 
 interface VerificationRequest {
@@ -84,6 +106,14 @@ const memberPaymentsModule: Module<MemberPaymentsState, any> = {
 
     totalPaid: (state) => {
       return state.memberData?.payment_stats.total_paid || 0;
+    },
+
+    currentCreditRound: (state) => {
+      return state.memberData?.current_credit_round || null;
+    },
+
+    contributionType: (state) => {
+      return state.memberData?.member.contribution_type || "full";
     },
   },
 
@@ -143,13 +173,16 @@ const memberPaymentsModule: Module<MemberPaymentsState, any> = {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Authentication token not found.");
 
+        // Collector endpoint: requires memberId to view specific member's data
         const response = await api.get(`/members/${memberId}/iqub/${iqubId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         console.log("API Response:", response.data);
 
-        commit("SET_MEMBER_DATA", response.data.data);
+        // Transform backend data (snake_case → camelCase)
+        const transformedData = transformMemberPaymentData(response.data.data);
+        commit("SET_MEMBER_DATA", transformedData);
       } catch (error: any) {
         const errorMessage =
           error.response?.data?.message ||

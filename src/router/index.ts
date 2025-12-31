@@ -3,31 +3,34 @@ import { createRouter, createWebHistory } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
 import { useStore } from "vuex";
 
-// Import necessary page components
-import LoginPage from "../views/LoginPage.vue";
-import SignupPage from "../views/SignupPage.vue";
+// ===== Auth Views =====
+import LoginPage from "../views/authViews/LoginPage.vue";
+import SignupPage from "../views/authViews/SignupPage.vue";
 
-// Import the components that will be rendered by the root router outlet
-import CollectorDashboard from "../views/CollectorDashboard.vue"; // Now a full page
-import MemberDashboard from "../views/MemberDashboard.vue"; // Now a full page
-import MyIqubsPage from "../views/MyIqubsPage.vue"; // Now a full page
-import CreateIqubPage from "../views/CreateIqubPage.vue"; // Now a full page
-import ProfilePage from "../views/CollectorProfile.vue"; // Assuming this is a full page
-import IqubBookPage from "../views/IqubBookPage.vue"; // Assuming this is a full page
+// ===== Collector Views =====
+import CollectorDashboard from "../views/collectorViews/CollectorDashboard.vue";
+import ProfilePage from "../views/collectorViews/CollectorProfile.vue";
+import CreateIqubPage from "../views/collectorViews/CreateIqubPage.vue";
+import MyIqubsPage from "../views/collectorViews/MyIqubsPage.vue";
+import IqubBookPage from "../views/collectorViews/IqubBookPage.vue";
+import IqubDetailPage from "../views/collectorViews/IqubDetailPage.vue";
+
+// ===== Member Views =====
+import MemberDashboard from "../views/memberViews/MemberDashboard.vue";
+import JoinedIqubsPage from "../views/memberViews/JoinedIqubsPage.vue";
+import MemberMyIqubsPage from "../views/memberViews/MemberMyIqubsPage.vue";
+import MemberDiscoverPage from "../views/memberViews/MemberDiscoverPage.vue";
+import JoinIqubPage from "../views/memberViews/JoinIqubPage.vue";
+import MemberProfilePage from "../views/memberViews/MemberProfilePage.vue";
+import LotteryNotificationsPage from "../views/memberViews/LotteryNotificationsPage.vue";
+
+// ===== Shared Views =====
 import PaymentVerificationPage from "../views/PaymentVerificationPage.vue";
-import NotificationsPage from "../views/NotificationsPage.vue"; // Import the new page
+import NotificationsPage from "../views/NotificationsPage.vue";
 
-// Import standalone pages
-import IqubDetailPage from "../views/IqubDetailPage.vue";
-import AboutView from "../views/AboutView.vue";
-import HomeView from "../views/HomeView.vue";
-import OnboardingPage from "../components/OnboardingPage.vue";
-import JoinedIqubsPage from "../views/JoinedIqubsPage.vue";
-// Import Member pages
-import MemberMyIqubsPage from "../views/MemberMyIqubsPage.vue";
-import MemberDiscoverPage from "../views/MemberDiscoverPage.vue";
-import JoinIqubPage from "../views/JoinIqubPage.vue";
-import MemberProfilePage from "../views/MemberProfilePage.vue";
+// ===== Components =====
+// Old onboarding (preserved for rollback): "../components/OnboardingPage.vue"
+import OnboardingPageV2 from "../views/onboarding/OnboardingPageV2.vue";
 
 import { User } from "@/types"; // Assuming User type is defined here
 
@@ -37,15 +40,9 @@ const routes: Array<RouteRecordRaw> = [
     redirect: "/onboarding", // Redirect root to onboarding
   },
   {
-    path: "/home",
-    name: "Home",
-    component: HomeView,
-    meta: { requiresAuth: false }, // Assuming home doesn't require auth
-  },
-  {
     path: "/onboarding",
     name: "onboarding",
-    component: OnboardingPage,
+    component: OnboardingPageV2,
     meta: { requiresAuth: false },
   },
   {
@@ -130,6 +127,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, roles: ["member"] },
   },
   {
+    path: "/member/lottery-notifications",
+    name: "member-lottery-notifications",
+    component: LotteryNotificationsPage,
+    meta: { requiresAuth: true, roles: ["member"] },
+  },
+  {
     path: "/member/join-iqub",
     name: "join-iqub",
     component: JoinIqubPage,
@@ -141,6 +144,13 @@ const routes: Array<RouteRecordRaw> = [
     component: JoinedIqubsPage,
     meta: { requiresAuth: true, roles: ["member"] },
   },
+  {
+    path: "/member/iqub/:iqubId",
+    name: "member-iqub-detail",
+    component: () => import("../views/memberViews/MemberIqubDetailPage.vue"),
+    meta: { requiresAuth: true, roles: ["member"] },
+    props: true,
+  },
   // --- Standalone Routes (rendered by the root <ion-router-outlet>) ---
   {
     path: "/iqub/:id",
@@ -148,12 +158,6 @@ const routes: Array<RouteRecordRaw> = [
     component: IqubDetailPage,
     meta: { requiresAuth: true, roles: ["collector", "member"] },
     props: true,
-  },
-  {
-    path: "/about",
-    name: "about",
-    component: AboutView,
-    meta: { requiresAuth: false }, // Assuming about doesn't require auth
   },
   // Catch-all for any other unmatched routes
   {
@@ -200,7 +204,7 @@ router.beforeEach((to, from, next) => {
           next("/member/dashboard"); // Redirect to member dashboard page
         } else {
           // Fallback for unknown roles
-          next("/home");
+          next("/onboarding");
         }
       } else {
         // User is logged in and has the required role (or no specific roles required)
@@ -234,7 +238,7 @@ router.beforeEach((to, from, next) => {
       } else if (user?.role === "member") {
         next("/member/dashboard");
       } else {
-        next("/home"); // Fallback
+        next("/onboarding"); // Fallback
       }
     } else {
       next(); // Allow navigation

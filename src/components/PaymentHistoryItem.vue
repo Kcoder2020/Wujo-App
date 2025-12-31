@@ -1,43 +1,56 @@
 <template>
   <div class="payment-history-item">
-    <div class="timeline-marker">
-      <div class="marker-dot" :class="statusClass"></div>
-      <div class="marker-line" v-if="!isLast"></div>
+    <!-- Timeline Connector -->
+    <div class="timeline-connector">
+      <div class="timeline-dot" :class="statusClass"></div>
+      <div v-if="!isLast" class="timeline-line"></div>
     </div>
 
-    <div class="payment-card">
+    <!-- Payment Card -->
+    <div class="payment-card" :class="statusClass">
       <div class="payment-header">
-        <h4 class="iqub-name">{{ payment.iqubName }}</h4>
-        <span class="payment-amount">{{ formatCurrency(payment.amount) }}</span>
+        <div class="payment-info">
+          <h4 class="iqub-name">{{ payment.iqubName }}</h4>
+          <p class="payment-date">{{ formatDate(payment.date) }}</p>
+        </div>
+        <div class="payment-amount" :class="statusClass">
+          {{ formatCurrency(payment.amount) }}
+        </div>
       </div>
-      <div class="payment-details">
-        <p class="payment-date">{{ formatDate(payment.date) }}</p>
-        <span class="payment-status" :class="statusClass">{{
-          statusText
-        }}</span>
+
+      <div class="payment-footer">
+        <!-- Status Badge -->
+        <div class="status-badge" :class="statusClass">
+          <ion-icon :icon="statusIcon"></ion-icon>
+          <span>{{ statusText }}</span>
+        </div>
+
+        <!-- View Receipt Button -->
+        <button
+          v-if="payment.receiptUrl && payment.status === 'completed'"
+          class="receipt-button"
+          @click="viewReceipt"
+        >
+          <ion-icon :icon="receiptOutline"></ion-icon>
+          <span>Receipt</span>
+        </button>
       </div>
-      <ion-button
-        v-if="payment.receiptUrl"
-        fill="clear"
-        size="small"
-        @click="viewReceipt"
-        class="receipt-button"
-      >
-        <template #start>
-          <ion-icon :icon="documentTextOutline" />
-        </template>
-        View Receipt
-      </ion-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IonButton, IonIcon } from "@ionic/vue";
-import { documentTextOutline } from "ionicons/icons";
+import { IonIcon } from "@ionic/vue";
+import {
+  checkmarkCircleOutline,
+  timeOutline,
+  closeCircleOutline,
+  receiptOutline,
+} from "ionicons/icons";
 
-export interface Payment {
+interface Payment {
+  id: string;
   iqubName: string;
   amount: number;
   date: string;
@@ -45,33 +58,54 @@ export interface Payment {
   receiptUrl?: string;
 }
 
-interface Props {
+const props = defineProps<{
   payment: Payment;
-  isLast?: boolean;
-}
+  isLast: boolean;
+}>();
 
-// eslint-disable-next-line no-undef
-const props = withDefaults(defineProps<Props>(), {
-  isLast: false,
-});
-
-// eslint-disable-next-line no-undef
 const emit = defineEmits<{
-  viewReceipt: [url: string];
+  (e: "view-receipt", url: string): void;
 }>();
 
 const statusClass = computed(() => {
   return `status-${props.payment.status}`;
 });
 
-const statusText = computed(() => {
-  const statusMap: Record<string, string> = {
-    completed: "Completed",
-    pending: "Pending",
-    failed: "Failed",
-  };
-  return statusMap[props.payment.status] || "Unknown";
+const statusIcon = computed(() => {
+  switch (props.payment.status) {
+    case "completed":
+      return checkmarkCircleOutline;
+    case "pending":
+      return timeOutline;
+    case "failed":
+      return closeCircleOutline;
+    default:
+      return timeOutline;
+  }
 });
+
+const statusText = computed(() => {
+  switch (props.payment.status) {
+    case "completed":
+      return "Completed";
+    case "pending":
+      return "Pending";
+    case "failed":
+      return "Failed";
+    default:
+      return "Unknown";
+  }
+});
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("en-ET", {
@@ -82,18 +116,9 @@ const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
 const viewReceipt = () => {
   if (props.payment.receiptUrl) {
-    emit("viewReceipt", props.payment.receiptUrl);
+    emit("view-receipt", props.payment.receiptUrl);
   }
 };
 </script>
@@ -102,122 +127,188 @@ const viewReceipt = () => {
 .payment-history-item {
   display: flex;
   gap: 16px;
-  margin-bottom: 16px;
 }
 
-.timeline-marker {
+/* Timeline Connector */
+.timeline-connector {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 4px;
+  width: 24px;
+  flex-shrink: 0;
 }
 
-.marker-dot {
-  width: 12px;
-  height: 12px;
+.timeline-dot {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  flex-shrink: 0;
+  background: #e0e0e0;
+  border: 3px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 1;
 }
 
-.marker-dot.status-completed {
-  background: #5fd9ac;
-  box-shadow: 0 0 0 4px rgba(95, 217, 172, 0.2);
+.timeline-dot.status-completed {
+  background: var(--ion-color-medium-aquamarine, #5fd9ac);
 }
 
-.marker-dot.status-pending {
-  background: #999;
-  box-shadow: 0 0 0 4px rgba(153, 153, 153, 0.2);
+.timeline-dot.status-pending {
+  background: #ffc107;
 }
 
-.marker-dot.status-failed {
-  background: #ff4444;
-  box-shadow: 0 0 0 4px rgba(255, 68, 68, 0.2);
+.timeline-dot.status-failed {
+  background: #ef4444;
 }
 
-.marker-line {
-  width: 2px;
+.timeline-line {
   flex: 1;
-  background: #e0e0e0;
+  width: 2px;
+  background: linear-gradient(180deg, #e0e0e0 0%, transparent 100%);
   margin-top: 4px;
   min-height: 40px;
 }
 
+/* Payment Card */
 .payment-card {
   flex: 1;
   background: white;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
 }
 
+.payment-card.status-completed {
+  border-left-color: var(--ion-color-medium-aquamarine, #5fd9ac);
+}
+
+.payment-card.status-pending {
+  border-left-color: #ffc107;
+}
+
+.payment-card.status-failed {
+  border-left-color: #ef4444;
+}
+
+.payment-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Payment Header */
 .payment-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.payment-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .iqub-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: #014023;
-  margin: 0;
-  flex: 1;
-}
-
-.payment-amount {
-  font-size: 16px;
-  font-weight: 700;
-  color: #5fd9ac;
-}
-
-.payment-details {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  color: var(--ion-color-dark-green, #014023);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .payment-date {
-  font-size: 13px;
-  color: #666;
+  font-size: 12px;
+  color: #888;
   margin: 0;
 }
 
-.payment-status {
+.payment-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ion-color-dark-green, #014023);
+}
+
+.payment-amount.status-completed {
+  color: var(--ion-color-medium-aquamarine, #5fd9ac);
+}
+
+.payment-amount.status-pending {
+  color: #ffc107;
+}
+
+.payment-amount.status-failed {
+  color: #ef4444;
+  text-decoration: line-through;
+}
+
+/* Payment Footer */
+.payment-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 8px;
-  text-transform: capitalize;
+  background: #f5f5f5;
+  color: #666;
 }
 
-.payment-status.status-completed {
+.status-badge.status-completed {
   background: rgba(95, 217, 172, 0.15);
-  color: #00a86b;
+  color: #2e7d5a;
 }
 
-.payment-status.status-pending {
-  background: rgba(255, 165, 0, 0.15);
-  color: #ff8c00;
+.status-badge.status-pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #b8860b;
 }
 
-.payment-status.status-failed {
-  background: rgba(255, 68, 68, 0.15);
-  color: #ff4444;
+.status-badge.status-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
 }
 
+.status-badge ion-icon {
+  font-size: 14px;
+}
+
+/* Receipt Button */
 .receipt-button {
-  --color: #5fd9ac;
-  --padding-start: 0;
-  --padding-end: 0;
-  margin-top: 4px;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--ion-color-medium-aquamarine, #5fd9ac);
+  border-radius: 20px;
+  color: var(--ion-color-medium-aquamarine, #5fd9ac);
+  font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.receipt-button:hover {
+  background: rgba(95, 217, 172, 0.1);
+}
+
+.receipt-button:active {
+  transform: scale(0.95);
 }
 
 .receipt-button ion-icon {
-  font-size: 16px;
+  font-size: 14px;
 }
 </style>

@@ -63,26 +63,30 @@ interface PaymentHistoryCardProps {
     roundNumber: number;
     amount: number;
     paymentDate: string;
-    dueDate: string;
-    paymentMethod: "mobile_money" | "bank_transfer" | "cash" | "manual";
-    status: "paid" | "pending" | "overdue" | "verified";
-    verificationStatus?: "pending" | "verified" | "rejected" | null;
+    paymentMethod:
+      | "mobile_money"
+      | "bank_transfer"
+      | "cash"
+      | "manual"
+      | "chapa";
+    status: "success" | "pending" | "failed";
+    chapaTxRef?: string | null;
+    verificationId?: string | null;
     receiptUrls?: string[];
-    collectorNotes?: string;
   };
 }
 
 const props = defineProps<PaymentHistoryCardProps>();
 const emit = defineEmits<{
   (e: "receiptClick", receiptUrls: string[]): void;
+  (e: "cardClick", payment: PaymentHistoryCardProps["payment"]): void;
 }>();
 
 const getStatusIcon = (status: string) => {
   const icons: Record<string, any> = {
-    verified: lockClosed,
-    paid: checkmarkCircle,
+    success: checkmarkCircle,
     pending: timeOutline,
-    overdue: alertCircle,
+    failed: alertCircle,
   };
   return icons[status] || timeOutline;
 };
@@ -110,6 +114,7 @@ const formatPaymentMethod = (method: string) => {
     bank_transfer: "Bank Transfer",
     cash: "Cash Payment",
     manual: "Manual Payment",
+    chapa: "Chapa Payment",
   };
   return methods[method] || method;
 };
@@ -125,7 +130,7 @@ const handleReceiptClick = () => {
 };
 
 const handleCardClick = () => {
-  // Card click handler for future expansion
+  emit("cardClick", props.payment);
 };
 </script>
 
@@ -169,11 +174,7 @@ const handleCardClick = () => {
   font-size: 32px;
 }
 
-.status-verified {
-  color: var(--ion-color-medium-aquamarine, #5fd9ac);
-}
-
-.status-paid {
+.status-success {
   color: var(--ion-color-success, #2dd36f);
 }
 
@@ -181,7 +182,7 @@ const handleCardClick = () => {
   color: var(--ion-color-warning, #ffa500);
 }
 
-.status-overdue {
+.status-failed {
   color: var(--ion-color-danger, #dc3545);
 }
 
